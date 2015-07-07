@@ -25,8 +25,10 @@ class VHbbAnalyzer( Analyzer ):
 
     def declareHandles(self):
         super(VHbbAnalyzer, self).declareHandles()
-        if getattr(self.cfg_ana,"doSoftActivity", False) :
+        if getattr(self.cfg_ana,"doSoftActivityVH", False) or getattr(self.cfg_ana,"doVBF", True):
             self.handles['pfCands'] =  AutoHandle( 'packedPFCandidates', 'std::vector<pat::PackedCandidate>' )
+        if self.cfg_comp.isMC:
+            self.handles['GenInfo'] = AutoHandle( ('generator','',''), 'GenEventInfoProduct' )
     def addNewBTag(self,event):
         newtags =  self.handles['btag'].product()
         for i in xrange(0,len(newtags)) :
@@ -45,38 +47,55 @@ class VHbbAnalyzer( Analyzer ):
         if "outputfile" in setup.services :
             setup.services["outputfile"].file.cd()
             self.inputCounter = ROOT.TH1F("Count","Count",1,0,2)
+            self.inputCounterPosWeight = ROOT.TH1F("CountPosWeight","Count genWeight>0",1,0,2)
+            self.inputCounterNegWeight = ROOT.TH1F("CountNegWeight","Count genWeight<0",1,0,2)
 
-    def doSoftActivity(self,event) :
+    def doVBF(self,event) :
         event.jetsForVBF = [x for x in event.cleanJetsAll if self.cfg_ana.higgsJetsPreSelection(x) ]
-        #compute SoftActivity only for events passing VBF selection
+        #compute only for events passing VBF selection
         if len(event.jetsForVBF) < 4 or  event.jetsForVBF[0] < 70 or  event.jetsForVBF[1] < 55 or  event.jetsForVBF[2] < 35 or  event.jetsForVBF[3] < 20 :
-            return 
+            return
         event.jetsForVBF.sort(key=lambda x:x.pt(),reverse=True)
         event.jetsForVBF=event.jetsForVBF[:4]
-        event.bJetsForVBF=sorted(event.jetsForVBF,key = lambda jet : jet.btag('combinedInclusiveSecondaryVertexV2BJetTags'), reverse=True)[:2]
+
+	#compute QGL here for VBF jets if passing VBF pre-selection 
+        map(lambda x :x.qgl(),event.jetsForVBF)
+
+        event.bJetsForVBF=sorted(event.jetsForVBF,key = lambda jet : jet.btag('pfCombinedInclusiveSecondaryVertexV2BJetTags'), reverse=True)[:2]
         j1=event.bJetsForVBF[0]
         j2=event.bJetsForVBF[1]
-        dRbb = deltaR(j1.eta(),j1.phi(),j2.eta(),j2.phi())
-        event.pfCands = list(self.handles['pfCands'].product())
+#print "VBF"
+#print event.selectedElectrons,event.selectedMuons,
+	event.softActivityJets=self.softActivity(event,j1,j2,event.jetsForVBF+event.selectedElectrons+event.selectedMuons)
+
+    def doSoftActivityVH(self,event) :
+        j1=event.hJetsCSV[0]
+        j2=event.hJetsCSV[1]
+#print "VH"
+        event.softActivityVHJets=self.softActivity(event,j1,j2,event.hJetsCSV+event.selectedElectrons+event.selectedMuons)
+
+
+    def softActivity(self,event,j1,j2,excludedJets) :
+	if not hasattr(event,"pfCands") :
+	        event.pfCands = list(self.handles['pfCands'].product())
+
         inputs=ROOT.std.vector(ROOT.heppy.ReclusterJets.LorentzVector)() 
         used=[]
-        for j in event.jetsForVBF :
-            used.extend(j.daughterPtrVector())
-        remainingPF = [x for x in event.pfCands if x.charge() != 0 and abs(x.eta()) < 2.5 and  x.pt() > 0.3 and x.fromPV() >=2 and x not in used] 
-        etaMin = min(event.jetsForVBF,key=lambda x:x.eta()).eta()+0.4
-        etaMax = max(event.jetsForVBF,key=lambda x:x.eta()).eta()-0.4
+        for j in excludedJets :
+	    for i in xrange(0,j.numberOfSourceCandidatePtrs()) :
+		    if j.sourceCandidatePtr(i).isAvailable() :
+	                used.append(j.sourceCandidatePtr(i))
+	#get the pointed objects
+ 	used =  [x.get() for x in used]
+	remainingPF = [x for x in event.pfCands if x.charge() != 0 and abs(x.eta()) < 2.5 and  x.pt() > 0.3 and x.fromPV() >=2 and x not in used] 
         dR0=0.4
-        for pf in remainingPF :
-#             if pf.eta() > etaMin and pf.eta() < etaMax:
-                dr1=deltaR(j1.eta(),j1.phi(),pf.eta(),pf.phi())               
-                dr2=deltaR(j2.eta(),j2.phi(),pf.eta(),pf.phi())               
-                if dr1+dr2 > dRbb + 2*dR0: 
-                   inputs.push_back(pf.p4())
-        clusterizer=ROOT.heppy.ReclusterJets(inputs,-1,0.4)
-        jets=clusterizer.getGrouping(1)
-        event.softActivityJets =  [ ROOT.reco.Particle.LorentzVector(p4) for p4 in jets ]
-        event.softActivityJets.sort(key=lambda x:x.pt(), reverse=True)
-
+        dRbb = deltaR(j1.eta(),j1.phi(),j2.eta(),j2.phi())
+	map(lambda x:inputs.push_back(x.p4()), remainingPF)
+	softActivity=ROOT.heppy.FastSoftActivity(inputs,-1,0.4,j1.p4(),j2.p4(),dRbb+2*dR0)
+        jets=softActivity.getGrouping(1)
+        softActivityJets =  [ ROOT.reco.Particle.LorentzVector(p4) for p4 in jets ]
+        softActivityJets.sort(key=lambda x:x.pt(), reverse=True)
+	return softActivityJets
 
     def makeJets(self,event,b):
 	inputs=ROOT.std.vector(ROOT.heppy.ReclusterJets.LorentzVector)()
@@ -122,10 +141,10 @@ class VHbbAnalyzer( Analyzer ):
 
     def doHiggsHighCSV(self,event) :
         #leading csv interpretation
-        event.hJetsCSV=sorted(event.jetsForHiggs,key = lambda jet : jet.btag('combinedInclusiveSecondaryVertexV2BJetTags'), reverse=True)[0:2]
+        event.hJetsCSV=sorted(event.jetsForHiggs,key = lambda jet : jet.btag('pfCombinedInclusiveSecondaryVertexV2BJetTags'), reverse=True)[0:2]
         event.aJetsCSV = [x for x in event.cleanJets if x not in event.hJetsCSV]
-        event.hjidxCSV=[event.cleanJets.index(x) for x in event.hJetsCSV ]
-        event.ajidxCSV=[event.cleanJets.index(x) for x in event.aJetsCSV ]
+        event.hjidxCSV=[event.cleanJetsAll.index(x) for x in event.hJetsCSV ]
+        event.ajidxCSV=[event.cleanJetsAll.index(x) for x in event.aJetsCSV ]
         event.aJetsCSV+=event.cleanJetsFwd
         event.HCSV = event.hJetsCSV[0].p4()+event.hJetsCSV[1].p4()
 
@@ -133,11 +152,11 @@ class VHbbAnalyzer( Analyzer ):
         #highest pair interpretations
         event.hJets=list(max(itertools.combinations(event.jetsForHiggs,2), key = lambda x : (x[0].p4()+x[1].p4()).pt() ))
         event.aJets = [x for x in event.cleanJets if x not in event.hJets]
-        event.hjidx=[event.cleanJets.index(x) for x in event.hJets ]
-        event.ajidx=[event.cleanJets.index(x) for x in event.aJets ]
+        event.hjidx=[event.cleanJetsAll.index(x) for x in event.hJets ]
+        event.ajidx=[event.cleanJetsAll.index(x) for x in event.aJets ]
         event.aJets+=event.cleanJetsFwd
-        hJetsByCSV = sorted(event.hJets , key =  lambda jet : jet.btag('combinedInclusiveSecondaryVertexV2BJetTags'), reverse=True)
-        event.hjidxDiJetPtByCSV = [event.cleanJets.index(x) for x in hJetsByCSV]
+        hJetsByCSV = sorted(event.hJets , key =  lambda jet : jet.btag('pfCombinedInclusiveSecondaryVertexV2BJetTags'), reverse=True)
+        event.hjidxDiJetPtByCSV = [event.cleanJetsAll.index(x) for x in hJetsByCSV]
         event.H = event.hJets[0].p4()+event.hJets[1].p4()
 
 
@@ -156,8 +175,8 @@ class VHbbAnalyzer( Analyzer ):
            event.hJets3cj.append(j3)
 #          event.hJets3cj=list(min(itertools.combinations(event.jetsForHiggs,3), key = lambda x : ( x[2]>15 and (deltaR( x[0].eta(), x[0].phi(), x[2].eta(), x[2].phi()) +  deltaR( x[1].eta(), x[1].phi(), x[2].eta(), x[2].phi()) ) ) ))
            event.aJets3cj = [x for x in event.cleanJets if x not in event.hJets3cj]
-           event.hjidx3cj=[event.cleanJets.index(x) for x in event.hJets3cj ]
-           event.ajidx3cj=[event.cleanJets.index(x) for x in event.aJets3cj ]
+           event.hjidx3cj=[event.cleanJetsAll.index(x) for x in event.hJets3cj ]
+           event.ajidx3cj=[event.cleanJetsAll.index(x) for x in event.aJets3cj ]
            event.aJets3cj+=event.cleanJetsFwd
            event.H3cj = event.hJets3cj[0].p4()+event.hJets3cj[1].p4()+event.hJets3cj[2].p4()
            event.minDr3 = min(deltaR( event.hJets3cj[0].eta(), event.hJets3cj[0].phi(), event.hJets3cj[2].eta(), event.hJets3cj[2].phi()) ,  deltaR( event.hJets3cj[1].eta(), event.hJets3cj[1].phi(), event.hJets3cj[2].eta(), event.hJets3cj[2].phi()))  
@@ -299,8 +318,15 @@ class VHbbAnalyzer( Analyzer ):
         event.hjidxDiJetPtByCSV = []
         event.softActivityJets=[]
     def process(self, event):
+	#print "Event number",event.iEv
         self.readCollections( event.input )
         self.inputCounter.Fill(1)
+        if self.cfg_comp.isMC:
+            genWeight = self.handles['GenInfo'].product().weight()
+            if genWeight > 0:
+                self.inputCounterPosWeight.Fill(1)
+            elif genWeight < 0:
+                self.inputCounterNegWeight.Fill(1)
         self.initOutputs(event)
 #	event.pfCands = self.handles['pfCands'].product()
 # 	met = event.met
@@ -318,12 +344,15 @@ class VHbbAnalyzer( Analyzer ):
         if event.Vtype < 0 and not ( sum(x.pt() > 30 for x in event.jetsForHiggs) >= 4 or sum(x.pt() for x in event.jetsForHiggs[:4]) > 160 ):
                 return self.cfg_ana.passall
 
+        map(lambda x :x.qgl(),event.jetsForHiggs[:4])
 	self.doHiggsHighCSV(event)
 	self.doHiggsHighPt(event)
         self.doHiggs3cj(event)
         self.fillTauIndices(event)
-        if getattr(self.cfg_ana,"doSoftActivity", False) :
-            self.doSoftActivity(event)
+	if getattr(self.cfg_ana,"doVBF", True) :
+	    self.doVBF(event)
+        if getattr(self.cfg_ana,"doSoftActivityVH", False) :
+            self.doSoftActivityVH(event)
 
     #    event.jee = list(self.handles['jee'].product())
 	#for j in list(jets)[0:3]:

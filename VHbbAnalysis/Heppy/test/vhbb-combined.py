@@ -5,6 +5,7 @@ from PhysicsTools.Heppy.utils.cmsswPreprocessor import CmsswPreprocessor
 from vhbb import *
 # from VHbbAnalysis.Heppy.AdditionalBTag import AdditionalBTag
 from VHbbAnalysis.Heppy.AdditionalBoost import AdditionalBoost
+from VHbbAnalysis.Heppy.GenHFHadronMatcher import GenHFHadronMatcher
 
 
 # Add Boosted Information
@@ -15,8 +16,15 @@ boostana=cfg.Analyzer(
 )
 sequence.insert(sequence.index(VHbb),boostana)
 
-treeProducer.collections["ungroomedFatjets"] = NTupleCollection("ungroomedFatjets", 
-                                                                fatjetType, 
+genhfana=cfg.Analyzer(
+    verbose=False,
+    class_object=GenHFHadronMatcher,
+)
+sequence.insert(sequence.index(VHbb),genhfana)
+
+
+treeProducer.collections["ungroomedFatjets"] = NTupleCollection("ungroomedFatjets",
+                                                                fatjetType,
                                                                 10,
                                                                 help = "CA, R=1.5, pT > 200 GeV, no grooming")
 
@@ -48,6 +56,7 @@ TauGenJet = cfg.Analyzer(
 sequence.insert(sequence.index(VHbb),TauGenJet)
 
 treeProducer.collections["tauGenJets"] = NTupleCollection("GenHadTaus", genTauJetType, 15, help="Generator level hadronic tau decays")
+treeProducer.collections["genJetsHadronMatcher"] = NTupleCollection("GenJet",   genJetType, 15, help="Generated jets with hadron matching, sorted by pt descending",filter=lambda x: x.pt() > 20,mcOnly=True)
 
 # Run Everything
 
