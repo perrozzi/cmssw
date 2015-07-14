@@ -64,8 +64,8 @@ print '\nDATASETS INCLUDED IN THE HBB LIST AND STILL IN PRODUCTION\n'
 for line in vhbb_prod:
     print line
 
-print '\nDATASETS INCLUDED IN THE HBB LIST NOT IN PRODUCTION NOR IN VALID state\n'
-for line in vhbb_prod:
+print '\nDATASETS INCLUDED IN THE HBB LIST NOT IN PRODUCTION NOR IN VALID STATE (i.e. REMOVE FROM THE LIST!!!) \n'
+for line in filter(None, vhbb_all.split('\n')):
   if (line not in das_production) and (line not in das_valid):
     print line
 
