@@ -25,6 +25,10 @@ remove = [
 das_valid = os.popen('python ./das_client.py --limit=0 --query="dataset=/*/RunIISpring15DR74-Asympt25ns_MCRUN2_74_V9*/MINIAODSIM"').read().split('\n')
 das_valid = filter(None, das_valid)
 
+if len(das_valid)<1: 
+  print "ERROR WHILE EVALUATING VALID DATASETS, EMPTY LIST, ABORTING"
+  sys.exit(1)
+  
 # FILELIST OF AVAILABLE DATASETS ON DAS AS PRODUCTION
 
 das_production = os.popen('python ./das_client.py --limit=0 --query="dataset dataset=/*/RunIISpring15DR74-Asympt25ns_MCRUN2_74_V9*/MINIAODSIM status=PRODUCTION"').read().split('\n')
