@@ -124,7 +124,7 @@ class AutoFillTreeProducer( TreeAnalyzerNumpy ):
                     tr.fill("nTrueInt", -1)
                     tr.fill("puWeight", 1.0)
                 
-            tr.fill("genWeight", self.mchandles['GenInfo'].product().weight())
+            tr.fill("genWeight", self.mchandles['GenInfo'].product().weight()/abs(self.mchandles['GenInfo'].product().weight()))
             ## PDF weights
             if hasattr(event,"pdfWeights") :
               for (pdf,nvals) in self.pdfWeights:
