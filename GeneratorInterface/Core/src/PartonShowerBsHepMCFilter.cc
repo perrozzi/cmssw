@@ -9,7 +9,8 @@ using namespace std;
 
 
 //constructor
-PartonShowerBsHepMCFilter::PartonShowerBsHepMCFilter(const edm::ParameterSet& iConfig) 
+PartonShowerBsHepMCFilter::PartonShowerBsHepMCFilter(const edm::ParameterSet& iConfig) :
+excludeFromCountsDaughtersOfGivenPDGs_(iConfig.getParameter< std::vector<int> >("excludeFromCountsDaughtersOfGivenPDGs"))
 {
 
 }
@@ -31,16 +32,25 @@ bool PartonShowerBsHepMCFilter::filter(const HepMC::GenEvent* evt)
   
   // loop over gen particles
   for ( HepMC::GenEvent::particle_const_iterator p = evt->particles_begin(); p != evt->particles_end(); ++p ){
-	
+    
     // check only status 2 particles
     if( (*p)->status()==2 ){
-      // if one of the status 2 particles is a B-hadron, accept the event
-      HepPDT::ParticleID pid((*p)->pdg_id());
-      if( pid.hasBottom() ){
-        return true; // accept event
+      
+      for(int imom = 0; imom<(*p)->numberOfMothers(); imom++ ){
+        
+        for(unsigned int ivetopdg = 0; ivetopdg < excludeFromCountsDaughtersOfGivenPDGs_.size(); ivetopdg++ ){
+          if( (*p)->Mother(imom)->pdg_id() == excludeFromCountsDaughtersOfGivenPDGs_[ivetopdg] )
+          continue;
+        }
+        
+        // if one of the status 2 particles is a B-hadron, accept the event
+        HepPDT::ParticleID pid((*p)->pdg_id());
+        if( pid.hasBottom() ){
+          return true; // accept event
+        }
+        
       }
     }
-    
   }
 
   return false; // skip event

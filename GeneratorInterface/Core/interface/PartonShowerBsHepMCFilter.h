@@ -23,6 +23,7 @@ public:
   virtual bool filter(const HepMC::GenEvent* evt);
 
 private:
+  std::vector<int> excludeFromCountsDaughtersOfGivenPDGs_;    // vector of particle IDs to veto on
 
 };
 
