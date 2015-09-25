@@ -36,10 +36,10 @@ bool PartonShowerBsHepMCFilter::filter(const HepMC::GenEvent* evt)
     // check only status 2 particles
     if( (*p)->status()==2 ){
       
-      for(int imom = 0; imom<(*p)->numberOfMothers(); imom++ ){
+      for(int imom = 0; imom<(*p)->production_vertex()->particles_in_size(); imom++ ){
         
         for(unsigned int ivetopdg = 0; ivetopdg < excludeFromCountsDaughtersOfGivenPDGs_.size(); ivetopdg++ ){
-          if( (*p)->Mother(imom)->pdg_id() == excludeFromCountsDaughtersOfGivenPDGs_[ivetopdg] )
+          if( (*((*p)->production_vertex()->particles_in_const_begin() + imom))->pdg_id() == excludeFromCountsDaughtersOfGivenPDGs_[ivetopdg] )
           continue;
         }
         
