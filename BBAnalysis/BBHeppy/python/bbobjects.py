@@ -17,6 +17,15 @@ jetTypeBB = NTupleObjectType("jet",  baseObjectTypes = [ jetType ], variables = 
     NTupleVariable("mcIdx",   lambda x : x.mcJet.index if hasattr(x,"mcJet") and x.mcJet is not None else -1, int, mcOnly=False,help="index of the matching gen jet"),
  ])
 
+genBbPairType = NTupleObjectType("genBbPair",  baseObjectTypes = [ fourVectorType ], variables = [
+     NTupleVariable("deltaRhad",  lambda x : x.deltaRHad, help="deltaR between B"),
+     NTupleVariable("deltaRjet",  lambda x : x.deltaRJet, help="deltaR between the jets"),
+     NTupleVariable("hadPt",  lambda x : x.hadronPair.pt(), help="pt of the hadron pair"),
+     NTupleVariable("hadEta",  lambda x : x.hadronPair.eta(), help="eta of the hadron pair"),
+     NTupleVariable("hadPhi",  lambda x : x.hadronPair.phi(), help="phi of the hadron pair"),
+     NTupleVariable("hadMass",  lambda x : x.hadronPair.M(), help="mass of the hadron pair"),
+
+])
 bbPairType = NTupleObjectType("bbPair",  baseObjectTypes = [ fourVectorType ], variables = [
      NTupleVariable("B0idx",  lambda x : x.B0, help="index of B0 vertex"),
      NTupleVariable("B1idx",  lambda x : x.B1, help="index of B1 vertex"),
@@ -73,6 +82,8 @@ primaryVertexType = NTupleObjectType("primaryVertex", variables = [
 
 svType = NTupleObjectType("sv", baseObjectTypes = [ fourVectorType ], variables = [
     NTupleVariable("charge",   lambda x : x.charge(), int),
+    NTupleVariable("dirEta",   lambda x : x.direction.eta()),
+    NTupleVariable("dirPhi",   lambda x : x.direction.phi()),
     NTupleVariable("ntracks", lambda x : x.numberOfDaughters(), int, help="Number of tracks (with weight > 0.5)"),
     NTupleVariable("chi2", lambda x : x.vertexChi2(), help="Chi2 of the vertex fit"),
     NTupleVariable("ndof", lambda x : x.vertexNdof(), help="Degrees of freedom of the fit, ndof = (2*ntracks - 3)" ),

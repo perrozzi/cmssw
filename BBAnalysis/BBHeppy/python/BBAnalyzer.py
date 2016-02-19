@@ -20,6 +20,7 @@ class BBHeppy( Analyzer ):
         super(BBHeppy, self).declareHandles()
         self.handles['cands'] =  AutoHandle( 'packedPFCandidates','std::vector<pat::PackedCandidate>')
 #        self.handles['SV'] =  AutoHandle( 'slimmedSecondaryVertices','std::vector<reco::VertexCompositePtrCandidate>')
+        self.mchandles['packedGen'] = AutoHandle( 'packedGenParticles', 'std::vector<pat::PackedGenParticle>' )
         self.handles['PV'] =  AutoHandle( 'offlineSlimmedPrimaryVertices','std::vector<reco::Vertex>' )
     def beginLoop(self,setup):
         super(BBHeppy,self).beginLoop(setup)
@@ -33,6 +34,29 @@ class BBHeppy( Analyzer ):
 #               setattr(self, "inputCounterWeightedLHEWeightScale_"+str(LHE_scale), ROOT.TH1F("CountWeightedLHEWeightScale_"+str(LHE_scale),"Count with gen weight x LHE_weights_scale["+str(LHE_scale)+"] and pu weight",1,0,2))
 #            for LHE_pdf in range(2):
 #               setattr(self, "inputCounterWeightedLHEWeightPdf_"+str(LHE_pdf), ROOT.TH1F("CountWeightedLHEWeightPdf_"+str(LHE_pdf),"Count with gen weight x LHE_weights_pdf["+str(LHE_pdf)+"] and pu weight",1,0,2))
+    def notDaughtersOf(self,anchestors,packedGens):
+      result=[]
+      for p in packedGens :
+           mom = p.mother(0)
+           found = False
+           while mom:
+               if mom in anchestors :
+                  found=True
+                  break
+               mom = mom.mother(0) if mom.numberOfMothers() > 0 else None
+           if not found :   
+              result.append(p)
+      return result
+
+    def clusterizeGenParticles(self,event,b1,b2) :
+         packedGens=list(self.mchandles['packedGen'].product())
+         goodCands=self.notDaughtersOf([b1,b2],packedGens)
+   #      goodCands = [x for x  in packedGens if x not in excludedCands ]
+         lorentzVectorForFJ=ROOT.std.vector(ROOT.reco.Particle.LorentzVector)()
+         map(lambda x:lorentzVectorForFJ.push_back(x.p4()), goodCands)
+         clusterizer = ROOT.heppy.BBClusterizer(lorentzVectorForFJ,b1.p4(),b2.p4(),0,0.4);
+         outJets=clusterizer.getBJets()
+         return outJets
 
     def clusterize(self,event,b1,b2,alldaughters) :
          pfCands=list(self.handles['cands'].product())
@@ -84,14 +108,16 @@ class BBHeppy( Analyzer ):
 
         event.mergeablePairs = [] 
         event.bbPairSystem = [] 
+        event.genBbPairSystem = [] 
         event.bjets = [] 
+        event.genBjets = [] 
 #       self.studyMergeBToD(event)
 
         for sv in event.ivf :
             sv.direction=(sv.vertex()-event.PV.position())
 #            sv.directionUnit=sv.direction/sv.direction.mag()
         event.selectedSVs = [sv for sv in event.ivf if sv.p4().M() > 1.5 and sv.p4().M() <6.5 and sv.numberOfDaughters()>2 and abs(sv.direction.eta()) < 2 and sv.p4().pt() > 8.
-          and sv.direction.perp2() < 4. and sv.dxy.significance() > 3 and sv.d3d.significance() > 5  ] 
+          and sv.direction.perp2() < 4. and sv.dxy.significance() > 3 and sv.d3d.significance() > 5  and sv.cosTheta > 0.95 ] 
 #        print len(event.selectedSVs)       , len(event.ivf) 
         if len(event.selectedSVs) != 2 and len(event.genBHadrons) < 2 :
           return False
@@ -109,8 +135,14 @@ class BBHeppy( Analyzer ):
               thisPair.deltaRjet=deltaR(event.bjets[0],event.bjets[1])
 
               event.bbPairSystem.append(thisPair)
-
-
+        if len(event.genBHadrons) == 2 :
+              event.genBjets=self.clusterizeGenParticles(event,event.genBHadrons[0],event.genBHadrons[1])
+              thisGenPair=event.genBjets[0]+event.genBjets[1]
+              thisGenPair.deltaRHad=deltaR(event.genBHadrons[0],event.genBHadrons[1])
+              thisGenPair.deltaRJet=deltaR(event.genBjets[0],event.genBjets[1])
+              thisGenPair.hadronPair=event.genBHadrons[0].p4()+event.genBHadrons[1].p4()
+              event.genBbPairSystem.append(thisGenPair)
+          
 
         return True
 
