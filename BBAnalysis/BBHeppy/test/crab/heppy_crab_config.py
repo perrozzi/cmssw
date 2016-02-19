@@ -16,6 +16,7 @@ os.system("tar czf python.tar.gz --dereference --directory $CMSSW_BASE python")
 
 config.JobType.inputFiles = ['heppy_config.py',  #do not remove
                              'heppy_crab_script.py', #do not remove
+                             'python.tar.gz',
                              '../btod.py']
 #config.JobType.outputFiles = ['tree.root']
 
