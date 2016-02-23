@@ -18,22 +18,32 @@ jetTypeBB = NTupleObjectType("jet",  baseObjectTypes = [ jetType ], variables = 
  ])
 
 genBbPairType = NTupleObjectType("genBbPair",  baseObjectTypes = [ fourVectorType ], variables = [
+     NTupleVariable("numberOfSVinThisEvent",  lambda x : x.numberOfSVinThisEvent, help="number of SV in this event"),
      NTupleVariable("deltaRhad",  lambda x : x.deltaRHad, help="deltaR between B"),
      NTupleVariable("deltaRjet",  lambda x : x.deltaRJet, help="deltaR between the jets"),
      NTupleVariable("hadPt",  lambda x : x.hadronPair.pt(), help="pt of the hadron pair"),
      NTupleVariable("hadEta",  lambda x : x.hadronPair.eta(), help="eta of the hadron pair"),
      NTupleVariable("hadPhi",  lambda x : x.hadronPair.phi(), help="phi of the hadron pair"),
      NTupleVariable("hadMass",  lambda x : x.hadronPair.M(), help="mass of the hadron pair"),
+     NTupleVariable("deltaRForMatching0",  lambda x : x.deltaRForMatching0, help="deltaR of matched SV with B0 "),
+     NTupleVariable("deltaRForMatching1",  lambda x : x.deltaRForMatching1, help="deltaR of matched SV with B1 "),
 
 ])
 bbPairType = NTupleObjectType("bbPair",  baseObjectTypes = [ fourVectorType ], variables = [
+     NTupleVariable("numberOfBinThisEvent",  lambda x : x.numberOfBinThisEvent, help="number of B in this event"),
      NTupleVariable("B0idx",  lambda x : x.B0, help="index of B0 vertex"),
      NTupleVariable("B1idx",  lambda x : x.B1, help="index of B1 vertex"),
-     NTupleVariable("deltaR",  lambda x : x.deltaR, help="deltaR between B"),
+     NTupleVariable("deltaR",  lambda x : x.deltaR, help="deltaR between B with SVs"),
+     NTupleVariable("deltaRpp",  lambda x : x.deltaRpp, help="deltaR between B with momenta"),
      NTupleVariable("deltaRjet",  lambda x : x.deltaRjet, help="deltaR between the jets"),
      NTupleVariable("mcDeltaR",  lambda x : x.mcDeltaR, help="deltaR between Hadrons"),
-
+     NTupleVariable("nSharedTracks",  lambda x : x.numberOfSharedTracks, help="number of shared tracks between the SVs"),
+     NTupleVariable("deltaRForBMatch0",  lambda x : x.deltaRForBMatch0, help="deltaR of matched B with SV0"),
+     NTupleVariable("deltaRForBMatch1",  lambda x : x.deltaRForBMatch1, help="deltaR of matched B with SV1"),
+     NTupleVariable("deltaRForDMatch0",  lambda x : x.deltaRForDMatch0, help="deltaR of matched D with SV0"),
+     NTupleVariable("deltaRForDMatch1",  lambda x : x.deltaRForDMatch1, help="deltaR of matched D with SV1"),
 ])
+
 
 vertexPairType = NTupleObjectType("vertexPair",  baseObjectTypes = [ fourVectorType ], variables = [
      NTupleVariable("Bidx",  lambda x : x.B, help="index of B vertex"),

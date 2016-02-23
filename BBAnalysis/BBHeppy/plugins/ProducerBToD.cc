@@ -221,7 +221,7 @@ ProducerBToD::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   maxDRForUnique = 0.3;
   maxPtreltomerge = 6;
   minCosPAtomerge = 0.8;    // 36 deg
-  maxvecSumIMCUTForUnique = 5;
+  maxvecSumIMCUTForUnique = 4.5;
   maxTOTALmassForUnique = 6.5;
 
 //get the informations in slimmedSecondaryVertices
@@ -342,7 +342,7 @@ void ProducerBToD::resolveBtoDchain(std::vector<VertexProxy> & coll,  unsigned i
         double ptRel = sqrt(1.0 - cosa*cosa)* momentumFar.Mag();
 
         // Qui stanno tutte le condizioni per unire i due vertici, tranne una. La massa invariante sta dopo
-        if((cosPA > minCosPAtomerge) && (ptRel < maxPtreltomerge) && (ptRel < ptRelMin) && (p4Far.mass() + p4Near.mass() < maxvecSumIMCUTForUnique )) {
+        if((cosPA > minCosPAtomerge) && (ptRel < maxPtreltomerge) && (ptRel < ptRelMin) && (p4Far.mass() + p4Near.mass() > maxvecSumIMCUTForUnique )) {
           farIdx=farIdxTemp;
           nearIdx=nearIdxTemp;
           found=true;
