@@ -126,7 +126,7 @@ class ttHSVAnalyzer( Analyzer ):
                     maxhits  = max([h for (p,h,d,f) in ancestors.itervalues() ])
                     mindepth = min([d for (p,h,d,f) in ancestors.itervalues() if h == maxhits])
                     if matchable > 1:
-                        s.mcMatchFraction = maxhits / float(matchable)  #perchè non  maxhits / s.numberOfDaughters()?
+                        s.mcMatchFraction = maxhits / float(matchable)  #perchnon  maxhits / s.numberOfDaughters()?
                     for (mom,hits,depth,flav) in ancestors.itervalues():
                         if hits != maxhits: continue
                         if depth == mindepth:
