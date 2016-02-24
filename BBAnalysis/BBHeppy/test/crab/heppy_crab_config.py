@@ -1,5 +1,5 @@
 from WMCore.Configuration import Configuration
-version='V1'
+version='V2'
 config = Configuration()
 
 config.section_("General")
@@ -24,8 +24,8 @@ config.section_("Data")
 config.Data.inputDataset = '/QCD_Pt_80to120_TuneCUETP8M1_13TeV_pythia8/RunIIFall15MiniAODv2-PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1/MINIAODSIM'
 config.Data.inputDBS = 'global'
 config.Data.splitting = 'FileBased'
-config.Data.unitsPerJob = 2
-config.Data.totalUnits = 20
+config.Data.unitsPerJob = 5
+config.Data.totalUnits = 30
 config.Data.outLFNDirBase = '/store/user/arizzi/BBHeppy'+version+'/'
 config.Data.publication = True
 config.Data.outputDatasetTag = 'BBHeppy_'+version

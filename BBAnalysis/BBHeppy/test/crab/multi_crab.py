@@ -61,4 +61,7 @@ for dataset  in datasets:
      config.Data.outputDatasetTag += "_"+sample
      
      print "======== SUBMIT " , config.General.requestName , "=========="
-#     submit(config)
+     try:
+       submit(config)
+     except:
+        print "FAILED",config.General.requestName
