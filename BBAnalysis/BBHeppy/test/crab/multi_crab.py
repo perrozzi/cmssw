@@ -62,4 +62,7 @@ for dataset  in datasets:
      
      print "======== SUBMIT " , config.General.requestName , "=========="
      print "outdir",config.Data.outLFNDirBase
-     submit(config)
+     try:
+       submit(config)
+     except:
+        print "FAILED",config.General.requestName
