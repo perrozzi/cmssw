@@ -71,7 +71,7 @@ class BBHeppy( Analyzer ):
          outJets=clusterizer.getBJets()
          return outJets
 
-    def studyMergeBToD(self,event):
+    def studyMergeBToD(self,event) :
         for svpair in itertools.combinations(event.ivf,2) :
               svs=sorted(svpair,key=lambda x: x.d3d.value())
               if deltaR(svs[0].direction,svs[1].direction) < 0.3 and svs[0].p4().M() > 1.2 and svs[1].p4().M()<2.0  :
@@ -86,7 +86,72 @@ class BBHeppy( Analyzer ):
                    thisPair.mcDeltaR=deltaR(svs[0].mcHadron.p4(),svs[1].mcHadron.p4()) if svs[0].mcHadron is not None and  svs[1].mcHadron is not None else -1
                    if thisPair.M() < 6 :
                        event.mergeablePairs.append(thisPair)  
-         
+
+    def numberOfSharedTracks(self,event,svs1,svs2) :
+        tracksVector1 = svs1.daughterPtrVector()
+        tracksVector2 = svs2.daughterPtrVector()
+        shared = sum(1  for t in tracksVector1 if t in tracksVector2 )
+        return shared
+
+    def infForMatching(self,event, Hadrons) :
+        final = [-1, -1, -1, -1, 20., 20.]
+#    calculte all the distances between Bs and SVs
+        allDistances = []
+        HLen=len(Hadrons)
+        svLen=len(event.selectedSVs)
+        for H in Hadrons :
+            distancesOfOneH = []
+            svIdx=0
+            for sv in event.selectedSVs :
+                distance = deltaR(sv.direction, H.p4())
+                distancesOfOneH.append(distance)
+            allDistances.append(distancesOfOneH)
+        minDist = 20
+        secMinDist = 20
+        firstHidx = 0
+        secondHidx = 0
+        firstSVidx = 0
+        secondSVidx = 0
+#       Loop fo matching
+        for iteration in range(1,min(svLen,HLen,2)+1) :
+            for k in range(0,HLen) :
+                for l in range(0,svLen) :
+                    if minDist>allDistances[k][l] :
+                        secMinDist  = minDist
+                        minDist     = allDistances[k][l]
+                        firstHidx = k
+                        secondHidx = firstHidx
+                        firstSVidx = l
+                        secondSVidx = firstSVidx
+                    elif secMinDist>allDistances[k][l] :
+                        secMinDist  = allDistances[k][l]
+                        secondHidx = k
+                        secondSVidx = l
+#           record in final
+            if iteration==1 :
+                final[0] = firstHidx
+                final[1] = firstSVidx
+                final[4] = allDistances[firstHidx][firstSVidx]
+                if firstHidx != secondHidx and firstSVidx != secondSVidx :
+                    final[2] = secondHidx
+                    final[3] = secondSVidx
+                    final[5] = allDistances[secondHidx][secondSVidx]
+                    return final
+                if min(svLen,HLen)>1 :
+                    minDist = 20
+                    secMinDist = 20
+#       "delete" the SV and H I have already matched
+                    temporaneyList = []
+                    for l in range(0,svLen) :
+                        temporaneyList.append(21)
+                        allDistances[firstHidx][l] = 21
+                    allDistances[firstHidx] = temporaneyList
+            if iteration==2 :
+                final[2] = firstHidx
+                final[3] = firstSVidx
+                final[5] = allDistances[firstHidx][firstSVidx]
+        return final
+
 
     def process(self, event):
 	#print "Event number",event.iEv
@@ -121,28 +186,54 @@ class BBHeppy( Analyzer ):
 #        print len(event.selectedSVs)       , len(event.ivf) 
         if len(event.selectedSVs) != 2 and len(event.genBHadrons) < 2 :
           return False
+        infBMatch = self.infForMatching(event, event.genBHadrons)
+        infDMatch = self.infForMatching(event, event.genDHadrons)
         if len(event.selectedSVs) == 2  :
               svs=event.selectedSVs
               daughters = Set()
               map(daughters.add,svs[0].daughterPtrVector())
               map(daughters.add,svs[1].daughterPtrVector())
               thisPair=sum([x.p4() for x in daughters], ROOT.reco.Particle.LorentzVector(0.,0.,0.,0.))
+              thisPair.numberOfBinThisEvent=len(event.genBHadrons)
               thisPair.B0=event.ivf.index(svs[0])
               thisPair.B1=event.ivf.index(svs[1])
               thisPair.deltaR=deltaR(svs[0].direction,svs[1].direction)
+              thisPair.deltaRpp=deltaR(svs[0].p4(),svs[1].p4())
               thisPair.mcDeltaR=deltaR(svs[0].mcHadron.p4(),svs[1].mcHadron.p4()) if svs[0].mcHadron is not None and  svs[1].mcHadron is not None else -1
               event.bjets=self.clusterize(event,svs[0].p4(),svs[1].p4(),daughters) 
               thisPair.deltaRjet=deltaR(event.bjets[0],event.bjets[1])
-
+              thisPair.numberOfSharedTracks=self.numberOfSharedTracks(event,svs[0],svs[1])
+#              thisPair.mcMatchFraction0=svs[0].mcMatchFraction
+#              thisPair.mcMatchFraction1=svs[1].mcMatchFraction
+              if infBMatch[1]==0 :
+                thisPair.deltaRForBMatch0 = infBMatch[4]
+                thisPair.deltaRForBMatch1 = infBMatch[5]
+              else :
+                thisPair.deltaRForBMatch0 = infBMatch[5]
+                thisPair.deltaRForBMatch1 = infBMatch[4]
+              if infDMatch[1]==0 :
+                thisPair.deltaRForDMatch0 = infDMatch[4]
+                thisPair.deltaRForDMatch1 = infDMatch[5]
+              else :
+                thisPair.deltaRForDMatch0 = infDMatch[5]
+                thisPair.deltaRForDMatch1 = infDMatch[4]
               event.bbPairSystem.append(thisPair)
+
         if len(event.genBHadrons) == 2 :
               event.genBjets=self.clusterizeGenParticles(event,event.genBHadrons[0],event.genBHadrons[1])
               thisGenPair=event.genBjets[0]+event.genBjets[1]
+              thisGenPair.numberOfSVinThisEvent=len(event.selectedSVs)
               thisGenPair.deltaRHad=deltaR(event.genBHadrons[0],event.genBHadrons[1])
               thisGenPair.deltaRJet=deltaR(event.genBjets[0],event.genBjets[1])
               thisGenPair.hadronPair=event.genBHadrons[0].p4()+event.genBHadrons[1].p4()
+              if infBMatch[0]==0 :
+                thisGenPair.deltaRForMatching0 = infBMatch[4]
+                thisGenPair.deltaRForMatching1 = infBMatch[5]
+              else :
+                thisGenPair.deltaRForMatching0 = infBMatch[5]
+                thisGenPair.deltaRForMatching1 = infBMatch[4]
               event.genBbPairSystem.append(thisGenPair)
-          
+
 
         return True
 
