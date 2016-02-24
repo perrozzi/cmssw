@@ -61,4 +61,5 @@ for dataset  in datasets:
      config.Data.outputDatasetTag += "_"+sample
      
      print "======== SUBMIT " , config.General.requestName , "=========="
-#     submit(config)
+     print "outdir",config.Data.outLFNDirBase
+     submit(config)
