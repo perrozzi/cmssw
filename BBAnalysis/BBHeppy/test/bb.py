@@ -25,11 +25,14 @@ treeProducer= cfg.Analyzer(
    	        "ivf" : NTupleCollection("ivf", svType, 8, help="Selected secondary vertices from ttH guys"),
                 "genBHadrons"  : NTupleCollection("GenBHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level B hadrons"),
                 "genDHadrons"  : NTupleCollection("GenDHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level D hadrons"),
+                "genFirstb"  : NTupleCollection("genFirstb", bQuarkType, 20, mcOnly=True, help="Gen-level first b quarks"),
+                "genLastb"  : NTupleCollection("genLastb", bQuarkType, 20, mcOnly=True, help="Gen-level last b quarks"),
                 "mergeablePairs" : NTupleCollection("mergeablePairs", vertexPairType, 100, help=" pairs"), 
                 "bbPairSystem" : NTupleCollection("bbPairSystem", bbPairType, 10, help="bb pairs"), 
                 "genBbPairSystem" : NTupleCollection("genBbPairSystem", genBbPairType, 10, help="bb pairs",mcOnly=True), 
 	        "bjets"       : NTupleCollection("bjets",     fourVectorType, 2, help="Jets from bb pair"),
 	        "genBjets"       : NTupleCollection("genBjets",     fourVectorType, 2, mcOnly=True, help="GenJets from bb pair"),
+	        "leadingJet"       : NTupleCollection("leadingJet",     fourVectorType, 1, help="leading recostructed jet"),
 		#The following would just store the electrons and muons from miniaod without any selection or cleaning
                 # only the basice particle information is saved
 		#"slimmedMuons" : ( AutoHandle( ("slimmedMuons",), "std::vector<pat::Muon>" ),
@@ -131,7 +134,8 @@ output_service = cfg.Service(
     )
 
 sample = cfg.Component(
-    files = ['/scratch/arizzi/Hbb/V20/CMSSW_7_6_3/src/VHbbAnalysis/Heppy/test/crab/0618103E-8FB8-E511-807E-0026B94DBDF0.root'],
+#    files = ['/scratch/mandorli/CMSSW_7_6_3/src/QCD_Pt-1800to2400.root'],
+    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-120to170.root'],
     name="SingleSample", isEmbed=False
     )
 

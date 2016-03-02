@@ -37,6 +37,7 @@ class ttHSVAnalyzer( Analyzer ):
     def declareHandles(self):
         super(ttHSVAnalyzer, self).declareHandles()
         self.handles['ivf'] = AutoHandle( self.cfg_ana.sv,'std::vector<reco::VertexCompositePtrCandidate>')
+        #self.handles['isMerged'] =  AutoHandle('btod', 'isMerged', 'bool' )
         self.mchandles['packedGen'] = AutoHandle( 'packedGenParticles', 'std::vector<pat::PackedGenParticle>' )
 
     def beginLoop(self, setup):
@@ -51,7 +52,10 @@ class ttHSVAnalyzer( Analyzer ):
        
         # attach distances to PV
         pv = event.goodVertices[0] if len(event.goodVertices)>0 else event.vertices[0]
+        #idx = 0
         for sv in allivf:
+             #sv.isMerged = event.isMerged[idx]
+             #idx +=1
              #sv.dz  = SignedImpactParameterComputer.vertexDz(sv, pv)
              sv.dxy = SignedImpactParameterComputer.vertexDxy(sv, pv)
              sv.d3d = SignedImpactParameterComputer.vertexD3d(sv, pv)

@@ -19,8 +19,11 @@ jetTypeBB = NTupleObjectType("jet",  baseObjectTypes = [ jetType ], variables = 
 
 genBbPairType = NTupleObjectType("genBbPair",  baseObjectTypes = [ fourVectorType ], variables = [
      NTupleVariable("numberOfSVinThisEvent",  lambda x : x.numberOfSVinThisEvent, help="number of SV in this event"),
+     NTupleVariable("numberOfSelectedSVinThisEvent",  lambda x : x.numberOfSelectedSVinThisEvent, help="number of Selected SV in this event"),
      NTupleVariable("deltaRhad",  lambda x : x.deltaRHad, help="deltaR between B"),
      NTupleVariable("deltaRjet",  lambda x : x.deltaRJet, help="deltaR between the jets"),
+     NTupleVariable("deltaRLastb",  lambda x : x.deltaRLastb, help="deltaR between last bs"),
+     NTupleVariable("deltaRFirstb",  lambda x : x.deltaRFirstb, help="deltaR between the jets"),
      NTupleVariable("hadPt",  lambda x : x.hadronPair.pt(), help="pt of the hadron pair"),
      NTupleVariable("hadEta",  lambda x : x.hadronPair.eta(), help="eta of the hadron pair"),
      NTupleVariable("hadPhi",  lambda x : x.hadronPair.phi(), help="phi of the hadron pair"),
@@ -29,8 +32,10 @@ genBbPairType = NTupleObjectType("genBbPair",  baseObjectTypes = [ fourVectorTyp
      NTupleVariable("deltaRForMatching1",  lambda x : x.deltaRForMatching1, help="deltaR of matched SV with B1 "),
 
 ])
+
 bbPairType = NTupleObjectType("bbPair",  baseObjectTypes = [ fourVectorType ], variables = [
      NTupleVariable("numberOfBinThisEvent",  lambda x : x.numberOfBinThisEvent, help="number of B in this event"),
+     NTupleVariable("numberOfSVinThisEvent",  lambda x : x.numberOfSVinThisEvent, help="number of SV in this event"),
      NTupleVariable("B0idx",  lambda x : x.B0, help="index of B0 vertex"),
      NTupleVariable("B1idx",  lambda x : x.B1, help="index of B1 vertex"),
      NTupleVariable("deltaR",  lambda x : x.deltaR, help="deltaR between B with SVs"),
@@ -38,12 +43,17 @@ bbPairType = NTupleObjectType("bbPair",  baseObjectTypes = [ fourVectorType ], v
      NTupleVariable("deltaRjet",  lambda x : x.deltaRjet, help="deltaR between the jets"),
      NTupleVariable("mcDeltaR",  lambda x : x.mcDeltaR, help="deltaR between Hadrons"),
      NTupleVariable("nSharedTracks",  lambda x : x.numberOfSharedTracks, help="number of shared tracks between the SVs"),
+     NTupleVariable("maxIPShared",  lambda x : x.IPsOfTheShareds[0], help="3d impact parameters of the the shared tracks"),
+     NTupleVariable("secIPShared",  lambda x : x.IPsOfTheShareds[1], help="3d impact parameters of the the shared tracks"),
      NTupleVariable("deltaRForBMatch0",  lambda x : x.deltaRForBMatch0, help="deltaR of matched B with SV0"),
      NTupleVariable("deltaRForBMatch1",  lambda x : x.deltaRForBMatch1, help="deltaR of matched B with SV1"),
      NTupleVariable("deltaRForDMatch0",  lambda x : x.deltaRForDMatch0, help="deltaR of matched D with SV0"),
      NTupleVariable("deltaRForDMatch1",  lambda x : x.deltaRForDMatch1, help="deltaR of matched D with SV1"),
 ])
 
+bQuarkType = NTupleObjectType("bQuarks",  baseObjectTypes = [ fourVectorType ], variables = [
+     NTupleVariable("deltaRwithB",  lambda x : x.deltaRwithB, help="delta R between this b and the B hadron"),
+])
 
 vertexPairType = NTupleObjectType("vertexPair",  baseObjectTypes = [ fourVectorType ], variables = [
      NTupleVariable("Bidx",  lambda x : x.B, help="index of B vertex"),
@@ -64,6 +74,7 @@ vertexType = NTupleObjectType("vertex",  baseObjectTypes = [ fourVectorType ], v
 heavyFlavourHadronType = NTupleObjectType("heavyFlavourHadron", baseObjectTypes = [ genParticleType ], variables = [
     NTupleVariable("flav", lambda x : x.flav, int, mcOnly=True, help="Flavour"),
     NTupleVariable("sourceId", lambda x : x.sourceId, int, mcOnly=True, help="pdgId of heaviest mother particle (stopping at the first one heaviest than 175 GeV)"),
+    NTupleVariable("bIndex",  lambda x : x.bIndex, help="index of b in bQuarks"),
     NTupleVariable("svMass",   lambda x : x.sv.mass() if x.sv else 0, help="SV: mass"),
     NTupleVariable("svPt",   lambda x : x.sv.pt() if x.sv else 0, help="SV: pt"),
     NTupleVariable("svCharge",   lambda x : x.sv.charge() if x.sv else -99., int, help="SV: charge"),
@@ -97,6 +108,7 @@ svType = NTupleObjectType("sv", baseObjectTypes = [ fourVectorType ], variables 
     NTupleVariable("ntracks", lambda x : x.numberOfDaughters(), int, help="Number of tracks (with weight > 0.5)"),
     NTupleVariable("chi2", lambda x : x.vertexChi2(), help="Chi2 of the vertex fit"),
     NTupleVariable("ndof", lambda x : x.vertexNdof(), help="Degrees of freedom of the fit, ndof = (2*ntracks - 3)" ),
+#    NTupleVariable("isMerged", lambda x : x.isMerged, help="true if this vertex is two vertices merged by ProducerBToD " ),
     NTupleVariable("dxy",  lambda x : x.dxy.value(), help="Transverse distance from the PV [cm]"),
     NTupleVariable("sdxy",  lambda x : x.dxy.significance(), help="Significance Transverse distance from the PV [cm]"),
     NTupleVariable("edxy", lambda x : x.dxy.error(), help="Uncertainty on the transverse distance from the PV [cm]"),

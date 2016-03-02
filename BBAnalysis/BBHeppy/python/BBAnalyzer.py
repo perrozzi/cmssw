@@ -56,6 +56,7 @@ class BBHeppy( Analyzer ):
          map(lambda x:lorentzVectorForFJ.push_back(x.p4()), goodCands)
          clusterizer = ROOT.heppy.BBClusterizer(lorentzVectorForFJ,b1.p4(),b2.p4(),0,0.4);
          outJets=clusterizer.getBJets()
+         event.leadingJet.append(clusterizer.GetLeadingJet())
          return outJets
 
     def clusterize(self,event,b1,b2,alldaughters) :
@@ -87,22 +88,50 @@ class BBHeppy( Analyzer ):
                    if thisPair.M() < 6 :
                        event.mergeablePairs.append(thisPair)  
 
+    def selectVertices(self,selectedSVs) :
+        selectedSVs.sort(key = lambda sv : abs(sv.p4().M()), reverse = True)
+        if len(selectedSVs) > 2 :
+            if selectedSVs[0].p4().M() + selectedSVs[1].p4().M() > 4.5 and selectedSVs[0].p4().M() + selectedSVs[2].p4().M() < 4.5 :
+                newSV = []
+                newSV.append(selectedSVs[0])
+                newSV.append(selectedSVs[1])
+                return newSV
+        return selectedSVs
+
+
     def numberOfSharedTracks(self,event,svs1,svs2) :
         tracksVector1 = svs1.daughterPtrVector()
         tracksVector2 = svs2.daughterPtrVector()
         shared = sum(1  for t in tracksVector1 if t in tracksVector2 )
         return shared
 
+    def IPsOfTheShareds(self,event,svs1,svs2) :
+        IPs = [0, 0]
+#        if self.numberOfSharedTracks(event,svs1,svs2) > 0 :
+#            builder = ROOT.edm.ESHandle(ROOT.edm.TransientTrackBuilder)
+#            tracksVector1 = svs1.daughterPtrVector()
+#            tracksVector2 = svs2.daughterPtrVector()
+#            shared = [t  for t in tracksVector1 if t in tracksVector2 ]
+#            AllIPs = []
+#            for t in shared :
+#                transientTrack = builder.build(t)
+#                significance = ((IPTools.absoluteImpactParameter3D(transientTrack, event.PV)).first).significance()
+#                AllIPs.append(significance)
+#            IPs.append(AllIPs[0])
+#            if len(AllIPs) > 1 :
+#                IPs.append(AllIPs[1])
+        return IPs
+
     def infForMatching(self,event, Hadrons) :
-        final = [-1, -1, -1, -1, 20., 20.]
+      final = [-1, -1, -1, -1, 20., 20.]
+      HLen=len(Hadrons)
+      svLen=len(event.selectedSVsSelected)
+      if HLen>0 and svLen>0 :
 #    calculte all the distances between Bs and SVs
         allDistances = []
-        HLen=len(Hadrons)
-        svLen=len(event.selectedSVs)
         for H in Hadrons :
             distancesOfOneH = []
-            svIdx=0
-            for sv in event.selectedSVs :
+            for sv in event.selectedSVsSelected :
                 distance = deltaR(sv.direction, H.p4())
                 distancesOfOneH.append(distance)
             allDistances.append(distancesOfOneH)
@@ -113,7 +142,7 @@ class BBHeppy( Analyzer ):
         firstSVidx = 0
         secondSVidx = 0
 #       Loop fo matching
-        for iteration in range(1,min(svLen,HLen,2)+1) :
+        for iteration in range(0,min(svLen,HLen,2)) :
             for k in range(0,HLen) :
                 for l in range(0,svLen) :
                     if minDist>allDistances[k][l] :
@@ -128,7 +157,7 @@ class BBHeppy( Analyzer ):
                         secondHidx = k
                         secondSVidx = l
 #           record in final
-            if iteration==1 :
+            if iteration==0 :
                 final[0] = firstHidx
                 final[1] = firstSVidx
                 final[4] = allDistances[firstHidx][firstSVidx]
@@ -142,15 +171,16 @@ class BBHeppy( Analyzer ):
                     secMinDist = 20
 #       "delete" the SV and H I have already matched
                     temporaneyList = []
+                    for k in range(0,HLen) :
+                        allDistances[k][firstSVidx] = 21
                     for l in range(0,svLen) :
                         temporaneyList.append(21)
-                        allDistances[firstHidx][l] = 21
                     allDistances[firstHidx] = temporaneyList
-            if iteration==2 :
+            if iteration==1 :
                 final[2] = firstHidx
                 final[3] = firstSVidx
                 final[5] = allDistances[firstHidx][firstSVidx]
-        return final
+      return final
 
 
     def process(self, event):
@@ -176,24 +206,27 @@ class BBHeppy( Analyzer ):
         event.genBbPairSystem = [] 
         event.bjets = [] 
         event.genBjets = [] 
+        event.leadingJet=[]
 #       self.studyMergeBToD(event)
 
         for sv in event.ivf :
             sv.direction=(sv.vertex()-event.PV.position())
 #            sv.directionUnit=sv.direction/sv.direction.mag()
-        event.selectedSVs = [sv for sv in event.ivf if sv.p4().M() > 1.5 and sv.p4().M() <6.5 and sv.numberOfDaughters()>2 and abs(sv.direction.eta()) < 2 and sv.p4().pt() > 8.
+        event.selectedSVs = [sv for sv in event.ivf if sv.p4().M() > 1.5 and sv.p4().M() <6. and sv.numberOfDaughters()>2 and abs(sv.direction.eta()) < 2 and sv.p4().pt() > 8.
           and sv.direction.perp2() < 4. and sv.dxy.significance() > 3 and sv.d3d.significance() > 5  and sv.cosTheta > 0.95 ] 
 #        print len(event.selectedSVs)       , len(event.ivf) 
-        if len(event.selectedSVs) != 2 and len(event.genBHadrons) < 2 :
+        event.selectedSVsSelected = self.selectVertices(event.selectedSVs)
+        if len(event.selectedSVsSelected) != 2 and len(event.genBHadrons) < 2 :
           return False
         infBMatch = self.infForMatching(event, event.genBHadrons)
         infDMatch = self.infForMatching(event, event.genDHadrons)
-        if len(event.selectedSVs) == 2  :
-              svs=event.selectedSVs
+        if len(event.selectedSVsSelected) == 2  :
+              svs=event.selectedSVsSelected
               daughters = Set()
               map(daughters.add,svs[0].daughterPtrVector())
               map(daughters.add,svs[1].daughterPtrVector())
               thisPair=sum([x.p4() for x in daughters], ROOT.reco.Particle.LorentzVector(0.,0.,0.,0.))
+              thisPair.numberOfSVinThisEvent=len(event.selectedSVs)
               thisPair.numberOfBinThisEvent=len(event.genBHadrons)
               thisPair.B0=event.ivf.index(svs[0])
               thisPair.B1=event.ivf.index(svs[1])
@@ -203,8 +236,7 @@ class BBHeppy( Analyzer ):
               event.bjets=self.clusterize(event,svs[0].p4(),svs[1].p4(),daughters) 
               thisPair.deltaRjet=deltaR(event.bjets[0],event.bjets[1])
               thisPair.numberOfSharedTracks=self.numberOfSharedTracks(event,svs[0],svs[1])
-#              thisPair.mcMatchFraction0=svs[0].mcMatchFraction
-#              thisPair.mcMatchFraction1=svs[1].mcMatchFraction
+              thisPair.IPsOfTheShareds=self.IPsOfTheShareds(event,svs[0],svs[1])
               if infBMatch[1]==0 :
                 thisPair.deltaRForBMatch0 = infBMatch[4]
                 thisPair.deltaRForBMatch1 = infBMatch[5]
@@ -223,8 +255,11 @@ class BBHeppy( Analyzer ):
               event.genBjets=self.clusterizeGenParticles(event,event.genBHadrons[0],event.genBHadrons[1])
               thisGenPair=event.genBjets[0]+event.genBjets[1]
               thisGenPair.numberOfSVinThisEvent=len(event.selectedSVs)
+              thisGenPair.numberOfSelectedSVinThisEvent=len(event.selectedSVsSelected)
               thisGenPair.deltaRHad=deltaR(event.genBHadrons[0],event.genBHadrons[1])
               thisGenPair.deltaRJet=deltaR(event.genBjets[0],event.genBjets[1])
+              thisGenPair.deltaRLastb =deltaR(event.genBHadrons[0].lastb,event.genBHadrons[1].lastb)
+              thisGenPair.deltaRFirstb =deltaR(event.genBHadrons[0].firstb,event.genBHadrons[1].firstb)
               thisGenPair.hadronPair=event.genBHadrons[0].p4()+event.genBHadrons[1].p4()
               if infBMatch[0]==0 :
                 thisGenPair.deltaRForMatching0 = infBMatch[4]
@@ -233,7 +268,6 @@ class BBHeppy( Analyzer ):
                 thisGenPair.deltaRForMatching0 = infBMatch[5]
                 thisGenPair.deltaRForMatching1 = infBMatch[4]
               event.genBbPairSystem.append(thisGenPair)
-
 
         return True
 

@@ -1,6 +1,7 @@
 from PhysicsTools.Heppy.analyzers.core.AutoHandle import AutoHandle
 from PhysicsTools.Heppy.analyzers.core.Analyzer import Analyzer
 from BBAnalysis.BBHeppy.ttHSVAnalyzer import matchToGenHadron
+from PhysicsTools.HeppyCore.utils.deltar import deltaR
 
 class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
     def __init__(self, cfg_ana, cfg_comp, looperName ):
@@ -12,6 +13,46 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
 
     def beginLoop(self, setup):
         super(ttHHeavyFlavourHadronAnalyzer,self).beginLoop(setup)
+
+    def makeFirstAndLastb(self, event) :
+        bIndex = 0
+        for g in event.genParticles:
+            #look if g is a first b
+            isFirst = False
+            if abs(g.pdgId()) == 5 and abs(g.eta()) < 15000 :
+                isFirst = True
+                for mom in g.motherRefVector() :
+                    if abs(mom.get().pdgId()) == 5 and abs(g.eta()) < 15000 :
+                        isFirst = False
+            if isFirst :
+                chainIt = g
+                chainIt_beforSearchForDaughter = None
+                lastb = g
+                #search the genB daughter of g
+                while chainIt != chainIt_beforSearchForDaughter :
+                    chainIt_beforSearchForDaughter = chainIt
+                    for dau in chainIt.daughterRefVector() :
+                        if abs(dau.pdgId()) == 5 :
+                            chainIt = dau
+                        elif max((abs(dau.pdgId())/1000) % 10, (abs(dau.pdgId())/100) % 10) == 5 :
+                            if abs(chainIt.pdgId()) == 5 :
+                                lastb = chainIt
+                            chainIt = dau
+                for i in range(0,len(event.genBHadrons)):
+                    try :
+                        if chainIt.get() == event.genBHadrons[i] :
+                            firstb = g.p4()
+                            lastb = lastb.p4()
+                            event.genBHadrons[i].firstb = firstb
+                            event.genBHadrons[i].lastb = lastb
+                            event.genBHadrons[i].bIndex = bIndex
+                            bIndex += 1
+                            firstb.deltaRwithB = deltaR(firstb, event.genBHadrons[i].p4())
+                            lastb.deltaRwithB = deltaR(lastb, event.genBHadrons[i].p4())
+                            event.genFirstb.append(firstb)
+                            event.genLastb.append(lastb)
+                    except :
+                        pass
 
     def process(self, event):
         self.readCollections( event.input )
@@ -35,6 +76,8 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
                 if mom == None or mom.isNull() or not mom.isAvailable(): break
             return False
 
+        event.genLastb = [] 
+        event.genFirstb = [] 
         heavyHadrons = []
         for g in event.genParticles:
             if g.status() != 2 or abs(g.pdgId()) < 100: continue
@@ -55,9 +98,12 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
                         heaviestInChain = False
                         break
                     mom = mom.motherRef() if mom.numberOfMothers() > 0 else None
-                    if not heaviestInChain: continue
+                if not heaviestInChain: continue
             # OK, here we are
             g.flav = myflav
+            g.firstb = g.p4()
+            g.lastb = g.p4()
+            g.bIndex = -1
             heavyHadrons.append(g)
         # if none is found, give up here without going through the rest, so we avoid e.g. mc matching for jets
         if len(heavyHadrons) == 0:
@@ -136,6 +182,8 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
         event.genHeavyHadrons = heavyHadrons
         event.genBHadrons = [ h for h in heavyHadrons if h.flav == 5 ]
         event.genDHadrons = [ h for h in heavyHadrons if h.flav == 4 ]
+        if len(event.genBHadrons) > 1 :
+            self.makeFirstAndLastb(event)
         #print "Summary: "
         #for had in event.genBHadrons:
         #    print "    HAD with %d daughters, mass %5.2f, pt %5.2f, eta %+4.2f, phi %+4.2f: sv %s, jet %s" % (had.numberOfDaughters(), had.mass(), had.pt(), had.eta(), had.phi(), had.sv != None, had.jet != None)
