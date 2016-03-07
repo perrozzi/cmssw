@@ -43,8 +43,8 @@ bbPairType = NTupleObjectType("bbPair",  baseObjectTypes = [ fourVectorType ], v
      NTupleVariable("deltaRjet",  lambda x : x.deltaRjet, help="deltaR between the jets"),
      NTupleVariable("mcDeltaR",  lambda x : x.mcDeltaR, help="deltaR between Hadrons"),
      NTupleVariable("nSharedTracks",  lambda x : x.numberOfSharedTracks, help="number of shared tracks between the SVs"),
-     NTupleVariable("maxIPShared",  lambda x : x.IPsOfTheShareds[0], help="3d impact parameters of the the shared tracks"),
-     NTupleVariable("secIPShared",  lambda x : x.IPsOfTheShareds[1], help="3d impact parameters of the the shared tracks"),
+     NTupleVariable("maxSIPShared",  lambda x : x.SIPsOfTheShareds[0], help="max 3d impact parameter significance of the the shared tracks"),
+     NTupleVariable("secSIPShared",  lambda x : x.SIPsOfTheShareds[1], help="second max impact parameter significance of the the shared tracks"),
      NTupleVariable("deltaRForBMatch0",  lambda x : x.deltaRForBMatch0, help="deltaR of matched B with SV0"),
      NTupleVariable("deltaRForBMatch1",  lambda x : x.deltaRForBMatch1, help="deltaR of matched B with SV1"),
      NTupleVariable("deltaRForDMatch0",  lambda x : x.deltaRForDMatch0, help="deltaR of matched D with SV0"),
@@ -103,6 +103,11 @@ primaryVertexType = NTupleObjectType("primaryVertex", variables = [
 
 svType = NTupleObjectType("sv", baseObjectTypes = [ fourVectorType ], variables = [
     NTupleVariable("charge",   lambda x : x.charge(), int),
+    NTupleVariable("x",   lambda x : x.CMSCoordinates.x(), help="x coordinate in CMS"),
+    NTupleVariable("y",   lambda x : x.CMSCoordinates.y(), help="y coordinate in CMS"),
+    NTupleVariable("z",   lambda x : x.CMSCoordinates.z(), help="z coordinate in CMS"),
+    NTupleVariable("CMSeta",   lambda x : x.CMSCoordinates.eta(), help="eta coordinate in CMS"),
+    NTupleVariable("CMSphi",   lambda x : x.CMSCoordinates.phi(), help="phi coordinate in CMS"),
     NTupleVariable("dirEta",   lambda x : x.direction.eta()),
     NTupleVariable("dirPhi",   lambda x : x.direction.phi()),
     NTupleVariable("ntracks", lambda x : x.numberOfDaughters(), int, help="Number of tracks (with weight > 0.5)"),

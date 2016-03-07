@@ -1,6 +1,7 @@
 from PhysicsTools.Heppy.analyzers.core.Analyzer import Analyzer
 from PhysicsTools.Heppy.analyzers.core.AutoHandle import AutoHandle
 from PhysicsTools.HeppyCore.utils.deltar import deltaR,deltaPhi
+from BBAnalysis.BBHeppy.signedSip import SignedImpactParameterComputer
 from copy import deepcopy
 from math import *
 import itertools
@@ -105,22 +106,18 @@ class BBHeppy( Analyzer ):
         shared = sum(1  for t in tracksVector1 if t in tracksVector2 )
         return shared
 
-    def IPsOfTheShareds(self,event,svs1,svs2) :
-        IPs = [0, 0]
-#        if self.numberOfSharedTracks(event,svs1,svs2) > 0 :
-#            builder = ROOT.edm.ESHandle(ROOT.edm.TransientTrackBuilder)
-#            tracksVector1 = svs1.daughterPtrVector()
-#            tracksVector2 = svs2.daughterPtrVector()
-#            shared = [t  for t in tracksVector1 if t in tracksVector2 ]
-#            AllIPs = []
-#            for t in shared :
-#                transientTrack = builder.build(t)
-#                significance = ((IPTools.absoluteImpactParameter3D(transientTrack, event.PV)).first).significance()
-#                AllIPs.append(significance)
-#            IPs.append(AllIPs[0])
-#            if len(AllIPs) > 1 :
-#                IPs.append(AllIPs[1])
-        return IPs
+    def SIPsOfTheShareds(self,event,svs1,svs2) :
+        SIPs = [0, 0]
+        AllSIPs = []
+        for dau in svs1.daughterPtrVector() :
+            if dau in svs2.daughterPtrVector() :
+                sharedTrack = dau.get()
+                AllSIPs.append(SignedImpactParameterComputer.signedIP3D(sharedTrack.pseudoTrack(), event.PV, svs1.momentum()).significance())
+        if len(AllSIPs) > 0 :
+            SIPs[0] = AllSIPs[0]
+        if len(AllSIPs) > 1 :
+            SIPs[1] = AllSIPs[1]
+        return SIPs
 
     def infForMatching(self,event, Hadrons) :
       final = [-1, -1, -1, -1, 20., 20.]
@@ -211,6 +208,7 @@ class BBHeppy( Analyzer ):
 
         for sv in event.ivf :
             sv.direction=(sv.vertex()-event.PV.position())
+            sv.CMSCoordinates = sv.vertex()
 #            sv.directionUnit=sv.direction/sv.direction.mag()
         event.selectedSVs = [sv for sv in event.ivf if sv.p4().M() > 1.5 and sv.p4().M() <6. and sv.numberOfDaughters()>2 and abs(sv.direction.eta()) < 2 and sv.p4().pt() > 8.
           and sv.direction.perp2() < 4. and sv.dxy.significance() > 3 and sv.d3d.significance() > 5  and sv.cosTheta > 0.95 ] 
@@ -236,7 +234,7 @@ class BBHeppy( Analyzer ):
               event.bjets=self.clusterize(event,svs[0].p4(),svs[1].p4(),daughters) 
               thisPair.deltaRjet=deltaR(event.bjets[0],event.bjets[1])
               thisPair.numberOfSharedTracks=self.numberOfSharedTracks(event,svs[0],svs[1])
-              thisPair.IPsOfTheShareds=self.IPsOfTheShareds(event,svs[0],svs[1])
+              thisPair.SIPsOfTheShareds=self.SIPsOfTheShareds(event,svs[0],svs[1])
               if infBMatch[1]==0 :
                 thisPair.deltaRForBMatch0 = infBMatch[4]
                 thisPair.deltaRForBMatch1 = infBMatch[5]

@@ -22,7 +22,7 @@ treeProducer= cfg.Analyzer(
         #  "met"    : NTupleObject("met",     metType, help="PF E_{T}^{miss}, after default type 1 corrections"),
         },
 	collections = {
-   	        "ivf" : NTupleCollection("ivf", svType, 8, help="Selected secondary vertices from ttH guys"),
+   	        "ivf" : NTupleCollection("ivf", svType, 50, help="Selected secondary vertices from ttH guys"),
                 "genBHadrons"  : NTupleCollection("GenBHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level B hadrons"),
                 "genDHadrons"  : NTupleCollection("GenDHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level D hadrons"),
                 "genFirstb"  : NTupleCollection("genFirstb", bQuarkType, 20, mcOnly=True, help="Gen-level first b quarks"),
@@ -134,8 +134,8 @@ output_service = cfg.Service(
     )
 
 sample = cfg.Component(
-#    files = ['/scratch/mandorli/CMSSW_7_6_3/src/QCD_Pt-1800to2400.root'],
-    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-120to170.root'],
+    files = ['/scratch/mandorli/CMSSW_7_6_3/src/QCD_Pt-1800to2400.root'],
+#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-120to170.root'],
     name="SingleSample", isEmbed=False
     )
 

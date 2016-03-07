@@ -218,6 +218,13 @@ ProducerBToD::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
    using namespace edm;
    using namespace std;
 
+//  maxDRForUnique = 0.3;
+//  maxPtreltomerge = 6000;
+//  minCosPAtomerge = 0;    // 36 deg
+////  minCosPAtomerge = 0.8;    // 36 deg
+////  maxvecSumIMCUTForUnique = 4.5;
+//  maxTOTALmassForUnique = 6.5;
+
   maxDRForUnique = 0.3;
   maxPtreltomerge = 6;
   minCosPAtomerge = 0.8;    // 36 deg
@@ -253,21 +260,18 @@ ProducerBToD::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   sort( SecondaryVerticesProxy.begin(), SecondaryVerticesProxy.end()); // SecondaryVerticesProxy[0] is the one with less significance
 
-
+  unsigned int SVsizeBeforeMerging=SecondaryVerticesProxy.size();
 //  bool b1= false;
     for(unsigned int kVtx=SecondaryVerticesProxy.size(); kVtx>0 && SecondaryVerticesProxy.size()>1; --kVtx){
 //      int tempSize = SecondaryVerticesProxy.size();
       // remove D vertices from the collection and add the tracks to the original one
       resolveBtoDchain(SecondaryVerticesProxy, kVtx-1);
 
-      // check how many times it merges tre SV all together
-//      if(tempSize - SecondaryVerticesProxy.size() > 0) {
-//        if(b1)
-//          cout << "tre SV di fila" << endl;
-//        else b1 = true;
-//      }
-//      else b1 = false;
     }
+
+    if(SVsizeBeforeMerging > SecondaryVerticesProxy.size())
+     cout << "Ho unito " << SVsizeBeforeMerging - SecondaryVerticesProxy.size() << " su " << SVsizeBeforeMerging <<endl;
+
 
   // print the significance of the vertices in order
 //  for (unsigned int i=0; i < SecondaryVerticesProxy.size(); i++)
@@ -317,12 +321,12 @@ void ProducerBToD::resolveBtoDchain(std::vector<VertexProxy> & coll,  unsigned i
   for(unsigned int I = 0; I < coll.size(); I++) {
     if(I!=k) {
       TVector3 SecondaryVertexPosition2(coll[I].vert.position().x(), coll[I].vert.position().y(), coll[I].vert.position().z());
-      pvToFar = SecondaryVertexPosition2 -ppv;
-      pvToNear= SecondaryVertexPosition1 -ppv;
+      pvToFar = SecondaryVertexPosition2 -ppv; //I
+      pvToNear= SecondaryVertexPosition1 -ppv; //k
       if(deltaR(pvToFar, pvToNear) < maxDRForUnique) {
         TVector3 nearToFar = pvToFar - pvToNear;
         //swap if k is the farther
-        if(pvToNear.Mag() > pvToFar.Mag()) {
+        if(pvToNear.Mag() < pvToFar.Mag()) {
           nearIdxTemp = k;
           farIdxTemp = I;
           nearToFar = pvToFar - pvToNear;
@@ -342,7 +346,8 @@ void ProducerBToD::resolveBtoDchain(std::vector<VertexProxy> & coll,  unsigned i
         double ptRel = sqrt(1.0 - cosa*cosa)* momentumFar.Mag();
 
         // Qui stanno tutte le condizioni per unire i due vertici, tranne una. La massa invariante sta dopo
-        if((cosPA > minCosPAtomerge) && (ptRel < maxPtreltomerge) && (ptRel < ptRelMin) && (p4Far.mass()<2.0) && (p4Near.mass() > 1.2 )) {
+        if((cosPA > minCosPAtomerge) && (ptRel < maxPtreltomerge) && (ptRel < ptRelMin) && (p4Near.mass() > 1.2 ) && (p4Far.mass()<2.0)) {
+//        if((cosPA > minCosPAtomerge) && (ptRel < maxPtreltomerge) && (ptRel < ptRelMin) && (p4Near.mass() > 0.8 )){// && (p4Far.mass()<2.0)) {
           farIdx=farIdxTemp;
           nearIdx=nearIdxTemp;
           found=true;
@@ -384,8 +389,8 @@ void ProducerBToD::resolveBtoDchain(std::vector<VertexProxy> & coll,  unsigned i
     for(std::set<reco::CandidatePtr>::const_iterator it = trackrefs.begin(); it!= trackrefs.end(); ++it)
       mother += (*it)->p4();
 
-
     if(mother.mass() < maxTOTALmassForUnique) {   //questa è l'ultima condizione
+//    if((mother.mass() < maxTOTALmassForUnique) && (mother.mass() > 2)) {   //questa è l'ultima condizione
 
       const std::vector<reco::CandidatePtr> & tracks1 = sToKeep.daughterPtrVector();
       const std::vector<reco::CandidatePtr> & tracks2 = sToThrow.daughterPtrVector();
