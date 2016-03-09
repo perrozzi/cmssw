@@ -113,6 +113,7 @@ class BBHeppy( Analyzer ):
             if dau in svs2.daughterPtrVector() :
                 sharedTrack = dau.get()
                 AllSIPs.append(SignedImpactParameterComputer.signedIP3D(sharedTrack.pseudoTrack(), event.PV, svs1.momentum()).significance())
+        AllSIPs.sort(key = lambda s : s, reverse = True)
         if len(AllSIPs) > 0 :
             SIPs[0] = AllSIPs[0]
         if len(AllSIPs) > 1 :
@@ -211,7 +212,7 @@ class BBHeppy( Analyzer ):
             sv.CMSCoordinates = sv.vertex()
 #            sv.directionUnit=sv.direction/sv.direction.mag()
         event.selectedSVs = [sv for sv in event.ivf if sv.p4().M() > 1.5 and sv.p4().M() <6. and sv.numberOfDaughters()>2 and abs(sv.direction.eta()) < 2 and sv.p4().pt() > 8.
-          and sv.direction.perp2() < 4. and sv.dxy.significance() > 3 and sv.d3d.significance() > 5  and sv.cosTheta > 0.95 ] 
+          and sv.dxy.significance() > 3 and sv.d3d.significance() > 5  and sv.cosTheta > 0.95 ]#and sv.direction.perp2() < 4. ] 
 #        print len(event.selectedSVs)       , len(event.ivf) 
         event.selectedSVsSelected = self.selectVertices(event.selectedSVs)
         if len(event.selectedSVsSelected) != 2 and len(event.genBHadrons) < 2 :

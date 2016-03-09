@@ -156,6 +156,6 @@ config.preprocessor=preprocessor
 # and the following runs the process directly if running as with python filename.py  
 if __name__ == '__main__':
     from PhysicsTools.HeppyCore.framework.looper import Looper 
-    looper = Looper( 'Loop', config, nPrint = 5,nEvents=3000) 
+    looper = Looper( 'Loop', config, nPrint = 5,nEvents=1000) 
     looper.loop()
     looper.write()

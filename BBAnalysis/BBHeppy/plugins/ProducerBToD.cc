@@ -117,6 +117,10 @@ class ProducerBToD : public edm::stream::EDProducer<> {
        }
 
       bool PassAFisrtSelection(reco::VertexCompositePtrCandidate secVert);
+      bool itIsInLayers(reco::VertexCompositePtrCandidate secVert);
+      bool couldBeBottomLayers (double phi, double L, double dist, double phiLimit1, double phiLimit2, double margin);
+      bool couldBeTopLayers (double phi, double L, double dist, double phiLimit1, double phiLimit2, double margin);
+
       bool isSelected(VertexProxy secVertProxy);
       double GetSignificance(reco::VertexCompositePtrCandidate secVert);
       double GetSignificanceXY(reco::VertexCompositePtrCandidate secVert);
@@ -229,7 +233,7 @@ ProducerBToD::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   maxPtreltomerge = 6;
   minCosPAtomerge = 0.8;    // 36 deg
 //  maxvecSumIMCUTForUnique = 4.5;
-  maxTOTALmassForUnique = 6.5;
+  maxTOTALmassForUnique = 6.;
 
 //get the informations in slimmedSecondaryVertices
   Handle<std::vector<reco::VertexCompositePtrCandidate> > SecondaryVerticesCollection;
@@ -285,7 +289,7 @@ ProducerBToD::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 
   for(std::vector<VertexProxy>::const_iterator itSV = SecondaryVerticesProxy.begin(); itSV!=SecondaryVerticesProxy.end(); itSV++) {
-    //if(isSelected(*itSV)) 
+    if(!itIsInLayers(itSV->vert)) 
       output->push_back(itSV->vert);
       ifMerged->push_back(itSV->itIsMerged);
   }
@@ -302,10 +306,15 @@ ProducerBToD::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 // MERGING THE SVs
 void ProducerBToD::resolveBtoDchain(std::vector<VertexProxy> & coll,  unsigned int k){
 
+//  for (unsigned int svIdx = 0; svIdx != coll.size(); svIdx++) {
+//    std::cout << svIdx << "\t mass: " << coll[svIdx].vert.mass() << "\t significance: " << coll[svIdx].significance3D << "\tdist^2: " << coll[svIdx].vert.position().y()*coll[svIdx].vert.position().y() + coll[svIdx].vert.position().x()*coll[svIdx].vert.position().x() << std::endl;
+//    if(svIdx == coll.size()-1)
+//      std::cout << std::endl;
+//  }
+
   TVector3 ppv(pv.position().x(),pv.position().y(),pv.position().z());
-  TVector3 SecondaryVertexPosition1(coll[k].vert.position().x(), coll[k].vert.position().y(), coll[k].vert.position().z());
-  TVector3 pvToNear;
-  TVector3 pvToFar ;
+  TVector3 SecondaryVertexPositionk(coll[k].vert.position().x(), coll[k].vert.position().y(), coll[k].vert.position().z());
+
 
   reco::Candidate::LorentzVector p4Near;
   reco::Candidate::LorentzVector p4Far;
@@ -316,27 +325,39 @@ void ProducerBToD::resolveBtoDchain(std::vector<VertexProxy> & coll,  unsigned i
   unsigned int farIdxTemp = 0;
   unsigned int nearIdx = 0;
   unsigned int farIdx = 0;
-  double ptRelMin =100000;
+  double ptRelMin = maxPtreltomerge;
+
+//  double cosPAToPrint = 0;
+//  double cosaToPrint = 0;
+//  double ptRelToPrint = 0;
+//  double deltaRToPrint = 0;
+//  double distNearToPrint = 0;
+//  double distFarToPrint = 0;
 
   for(unsigned int I = 0; I < coll.size(); I++) {
     if(I!=k) {
-      TVector3 SecondaryVertexPosition2(coll[I].vert.position().x(), coll[I].vert.position().y(), coll[I].vert.position().z());
-      pvToFar = SecondaryVertexPosition2 -ppv; //I
-      pvToNear= SecondaryVertexPosition1 -ppv; //k
-      if(deltaR(pvToFar, pvToNear) < maxDRForUnique) {
-        TVector3 nearToFar = pvToFar - pvToNear;
+//  for(unsigned int I = 0; I < k; I++) {
+
+      TVector3 SecondaryVertexPositionI(coll[I].vert.position().x(), coll[I].vert.position().y(), coll[I].vert.position().z());
+      TVector3 pvTok = SecondaryVertexPositionk -ppv; 
+      TVector3 pvToI= SecondaryVertexPositionI -ppv; 
+      if(deltaR(pvToI, pvTok) < maxDRForUnique) {
+        TVector3 pvToNear; 
+        TVector3 pvToFar; 
         //swap if k is the farther
-        if(pvToNear.Mag() < pvToFar.Mag()) {
+        if(pvTok.Mag() < pvToI.Mag()) {
           nearIdxTemp = k;
           farIdxTemp = I;
-          nearToFar = pvToFar - pvToNear;
+          pvToNear = pvTok;
+          pvToFar = pvToI;
         }
         else {
           nearIdxTemp = I;
           farIdxTemp = k;
-          nearToFar = pvToNear - pvToFar;
-          pvToNear = pvToFar;
+          pvToNear = pvToI;
+          pvToFar = pvTok;
         }
+        TVector3 nearToFar = pvToFar - pvToNear;
 
         p4Near = coll[nearIdxTemp].vert.p4();
         p4Far = coll[farIdxTemp].vert.p4();
@@ -352,18 +373,38 @@ void ProducerBToD::resolveBtoDchain(std::vector<VertexProxy> & coll,  unsigned i
           nearIdx=nearIdxTemp;
           found=true;
           ptRelMin = ptRel;
+//          distNearToPrint = pvToNear.Mag();
+//          distFarToPrint = pvToFar.Mag();
+//          deltaRToPrint = deltaR(pvToI, pvTok);
+//          cosPAToPrint = cosPA;
+//          cosaToPrint = cosa;
+//          ptRelToPrint = ptRel;
+//          std::cout << "Indici iniziali \t \t" << farIdx << "\t" << nearIdx << std::endl;
         }
       }
     }
   }
 
 
+//  bool nearIsTheMoreSign = true;
   unsigned int index_moreSignVertex = nearIdx;
   unsigned int index_lessSignVertex = farIdx;
   if(coll[nearIdx].significance3D < coll[farIdx].significance3D) {
+//  if(nearIdx!=k) {
     index_moreSignVertex = farIdx;
     index_lessSignVertex = nearIdx;
+//    nearIsTheMoreSign = false;
   }
+
+  if(itIsInLayers(coll[index_moreSignVertex].vert)) {
+    if(!itIsInLayers(coll[index_lessSignVertex].vert)) {
+      index_moreSignVertex = index_lessSignVertex;
+      index_lessSignVertex = index_moreSignVertex;
+    }
+    else
+      found = false;
+  }
+
 
   if(found) {
 
@@ -391,6 +432,16 @@ void ProducerBToD::resolveBtoDchain(std::vector<VertexProxy> & coll,  unsigned i
 
     if(mother.mass() < maxTOTALmassForUnique) {   //questa è l'ultima condizione
 //    if((mother.mass() < maxTOTALmassForUnique) && (mother.mass() > 2)) {   //questa è l'ultima condizione
+//        std::cout << "Indici  \t" << index_lessSignVertex << "\t" << index_moreSignVertex << std::endl;
+//        std::cout << "cosPA: " << cosPAToPrint << "\t cosa: " << cosaToPrint << "\t ptRel: " << ptRelToPrint << std::endl;
+//        std::cout << "deltaRToPrint: " << deltaRToPrint << "\t distNearToPrint: " << distNearToPrint << "\t distFarToPrint: " << distFarToPrint << std::endl;
+//        std::cout << "moreSignMass: "<<coll[index_moreSignVertex].vert.mass() << "\t LessSignMass: " << coll[index_lessSignVertex].vert.mass() << "\t TotalMass: " << mother.mass() << std::endl;
+//        if(nearIsTheMoreSign)
+//          std::cout << "Near is the more sign" << std::endl;
+//        else
+//          std::cout << "Far is the more sign" << std::endl;
+//        if (index_moreSignVertex!=k) std::cout << "BUG" << std::endl;
+//        std::cout << "more significance index: " << index_moreSignVertex << "\tless significance index: " << index_lessSignVertex << std::endl;
 
       const std::vector<reco::CandidatePtr> & tracks1 = sToKeep.daughterPtrVector();
       const std::vector<reco::CandidatePtr> & tracks2 = sToThrow.daughterPtrVector();
@@ -403,10 +454,17 @@ void ProducerBToD::resolveBtoDchain(std::vector<VertexProxy> & coll,  unsigned i
       }
     coll[index_moreSignVertex].itIsMerged = true;
     coll.erase( coll.begin() + index_lessSignVertex  );
+
     }
   }
 
 }  //parentesi di fine resolveBtoDchain
+
+
+
+
+
+
 
 //SECONDARY VERTEX SELECTION
 //bool ProducerBToD::isSelected(reco::VertexCompositePtrCandidate secVert) {
@@ -434,25 +492,53 @@ void ProducerBToD::resolveBtoDchain(std::vector<VertexProxy> & coll,  unsigned i
 //SECONDARY VERTEX FIRST SELECTION
 bool ProducerBToD::PassAFisrtSelection(reco::VertexCompositePtrCandidate secVert) {
 
-//  double significance = GetSignificance(secVert);
-//  double significanceXY = GetSignificanceXY(secVert);
-
-//  TVector3 ppv(pv.position().x(),pv.position().y(),pv.position().z());
-//  TVector3 SecondaryVertexPosition(secVert.position().x(), secVert.position().y(), secVert.position().z());
-//  TVector3 VertexDirection = SecondaryVertexPosition -ppv;
-
-//  TVector3 pDirection(secVert.p4().Px(), secVert.p4().Py(), secVert.p4().Pz());
-
-//  double distances_SV_p = pDirection.Dot(VertexDirection); 
-//  distances_SV_p = distances_SV_p/pDirection.Mag()/VertexDirection.Mag(); 
-
-//  if((secVert.mass()>1.) && (secVert.mass()<10.) && (abs(VertexDirection.PseudoRapidity())<3.) && (abs(VertexDirection.Perp())<2.) && (significanceXY > 2.) && (significance > 3.) && (distances_SV_p>0.80))
-//    return true;
-//  else
-//    return false;
-
-  return true;
+  double dinstanceFromCMSCenterSquared = secVert.position().x()*secVert.position().x()+secVert.position().y()*secVert.position().y();
+  if(dinstanceFromCMSCenterSquared > 96) //this cut SV from the third layer
+    return false;
+  else
+    return true;
 }
+
+//  LOOK IF THE sv IS IN A LAYER
+bool ProducerBToD::itIsInLayers(reco::VertexCompositePtrCandidate secVert) {
+
+    bool inLayer = false;
+    double rho = sqrt(secVert.position().x()*secVert.position().x()+secVert.position().y()*secVert.position().y());
+    double phi = TVector2::Phi_mpi_pi(secVert.position().phi());
+
+    double L1 = 0.42;
+    double dist1 = 0.70;
+    double phiLimit1 = 1.58;
+    double margin1 = 0.02;
+
+    if ((rho > 4.05) && (rho < 4.75)) {
+        if(couldBeBottomLayers ( phi, L1, dist1, phiLimit1, phiLimit1-0.005, margin1)) 
+            if ((rho < 4.25) || (couldBeTopLayers ( phi, L1, dist1, phiLimit1, phiLimit1-0.005, margin1))) 
+                inLayer = true;
+        if((rho > 4.55) && (couldBeTopLayers ( phi, L1, dist1, phiLimit1, phiLimit1-0.005, margin1)))
+            inLayer = true;
+    }
+
+    double L2 = 0.26;
+    double dist2 = 0.42;
+    double phiLimit2 = 1.58;
+    double margin2 = 0.01;
+
+    if ((rho > 6.98) && (rho < 7.65)) {
+        if(couldBeBottomLayers ( phi, L2, dist2, phiLimit2, phiLimit2-0.005, margin2)) 
+            if ((rho < 7.15) || (couldBeTopLayers ( phi, L2, dist2, phiLimit2, phiLimit2, margin2))) 
+                inLayer = true;
+        if((rho > 7.45) && (couldBeTopLayers ( phi, L2, dist2, phiLimit2, phiLimit2, margin2)))
+            inLayer = true;
+    }
+
+    if (((rho > 3.7) && (rho < 3.74)) || ((rho > 2.15) && (rho < 2.25)))
+        inLayer = true;
+
+    return inLayer;
+}
+
+
 //SIGNIFICANCES
 double ProducerBToD::GetSignificanceXY(reco::VertexCompositePtrCandidate secVert) {
 
@@ -481,6 +567,53 @@ double ProducerBToD::deltaR(TVector3 v1, TVector3 v2) {
   double R = std::sqrt(Phi*Phi+Eta*Eta);
 
   return R;
+}
+
+
+
+
+bool ProducerBToD::couldBeBottomLayers (double phi, double L, double dist, double phiLimit1, double phiLimit2, double margin) {
+    bool boolToReturn = false;
+    if ((phi > -phiLimit1) && (phi < phiLimit2)) {
+        phi = phi+phiLimit1+L/2;
+        double div = phi / dist;
+        div = div - floor(div);
+        div = div*dist;
+        if (div<L) 
+            boolToReturn = true;
+    }
+    else {
+        phi = phi-phiLimit1+margin+L/2;
+        double div = phi / dist;
+        div = div - floor(div);
+        div = div*dist;
+        if (div<L) 
+            boolToReturn = true;
+    }
+    return boolToReturn;
+}
+
+
+
+bool ProducerBToD::couldBeTopLayers (double phi, double L, double dist, double phiLimit1, double phiLimit2, double margin) {
+    bool boolToReturn = false;
+    if ((phi > phiLimit1) || (phi < -phiLimit2)) {
+        phi = phi+phiLimit1+L/2;
+        double div = phi / dist;
+        div = div - floor(div);
+        div = div*dist;
+        if (div<L) 
+            boolToReturn = true;
+    }
+    else {
+        phi = phi-phiLimit1+margin+L/2;
+        double div = phi / dist;
+        div = div - floor(div);
+        div = div*dist;
+        if (div<L) 
+            boolToReturn = true;
+    }
+    return boolToReturn;
 }
 
 
