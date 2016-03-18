@@ -6,6 +6,7 @@ from copy import deepcopy
 from math import *
 import itertools
 import ROOT
+import math
 from sets import Set
 
 def ptRel(p4,axis):
@@ -49,6 +50,12 @@ class BBHeppy( Analyzer ):
               result.append(p)
       return result
 
+    def myDeltaR(self, pvToDdirection, pvToBdirection) :
+        Phi = ROOT.TVector2.Phi_mpi_pi(pvToDdirection.Phi()-pvToBdirection.Phi())
+        Eta = pvToDdirection.PseudoRapidity()-pvToBdirection.PseudoRapidity()
+        R = Phi*Phi + Eta*Eta
+        return R
+
     def clusterizeGenParticles(self,event,b1,b2) :
          packedGens=list(self.mchandles['packedGen'].product())
          goodCands=self.notDaughtersOf([b1,b2],packedGens)
@@ -64,14 +71,22 @@ class BBHeppy( Analyzer ):
          pfCands=list(self.handles['cands'].product())
          excludedCands = [x.get() for x in alldaughters] 
          goodPFCands = [x for x  in pfCands if x not in excludedCands ]
-
 #         print len(pfCands),len(excludedCands), len(goodPFCands)
- 
          lorentzVectorForFJ=ROOT.std.vector(ROOT.reco.Particle.LorentzVector)()
          map(lambda x:lorentzVectorForFJ.push_back(x.p4()), goodPFCands)
          clusterizer = ROOT.heppy.BBClusterizer(lorentzVectorForFJ,b1,b2,0,0.4);
          outJets=clusterizer.getBJets()
          return outJets
+
+    def  svIsSelected(self, sv) :
+        isSelected = False
+        if sv.p4().M() > 1. and sv.p4().M() <5. and sv.numberOfDaughters()>2 and abs(sv.direction.eta()) < 2 and sv.p4().pt() > 8. and sv.dxy.significance() > 3 :
+         if sv.d3d.significance() > 5  and sv.cosTheta > 0.95  and sv.direction.perp2()*sv.p4().M()*sv.p4().M()/sv.p4().pt()/sv.p4().pt() > 0.00025 :
+          if sv.direction.perp2()*sv.p4().M()*sv.p4().M()/sv.p4().pt()/sv.p4().pt() < 0.15 :
+           if log10(sv.direction.perp2()*sv.p4().M()*sv.p4().M()) - 0.4*log10(sv.p4().pt()) < 1.9  :#  and sv.direction.perp2() < 4. 
+        #Remember to ask just one ivf with 3 tracks
+            isSelected = True
+        return isSelected
 
     def studyMergeBToD(self,event) :
         for svpair in itertools.combinations(event.ivf,2) :
@@ -90,14 +105,31 @@ class BBHeppy( Analyzer ):
                        event.mergeablePairs.append(thisPair)  
 
     def selectVertices(self,selectedSVs) :
+      if len(selectedSVs) >= 2 :
         selectedSVs.sort(key = lambda sv : abs(sv.p4().M()), reverse = True)
-        if len(selectedSVs) > 2 :
-            if selectedSVs[0].p4().M() + selectedSVs[1].p4().M() > 4.5 and selectedSVs[0].p4().M() + selectedSVs[2].p4().M() < 4.5 :
-                newSV = []
-                newSV.append(selectedSVs[0])
-                newSV.append(selectedSVs[1])
+        newSV = []
+        if selectedSVs[0].p4().M() < 2. :
+            return newSV
+        if len(selectedSVs) == 2 :
+            if selectedSVs[0].numberOfDaughters() > 2 or selectedSVs[1].numberOfDaughters() > 2 and selectedSVs[0].p4().M() + selectedSVs[1].p4().M() < 9. :
+                return selectedSVs
+            else :
                 return newSV
+        else :
+            newSV = [sv for sv in selectedSVs if sv.numberOfDaughters()]
+            if len(newSV) == 2 :
+                if newSV[0].p4().M() > 2. and newSV[0].p4().M() + newSV[1].p4().M() < 9. :
+                    return newSV
+            return []
+      else:
         return selectedSVs
+#        elif len(selectedSVs) == 3 :
+#            if selectedSVs[0].p4().M() + selectedSVs[1].p4().M() > 4.5 and selectedSVs[0].p4().M() + selectedSVs[2].p4().M() < 4.5 :
+#                newSV = []
+#                newSV.append(selectedSVs[0])
+#                newSV.append(selectedSVs[1])
+#                return newSV
+
 
 
     def numberOfSharedTracks(self,event,svs1,svs2) :
@@ -207,16 +239,38 @@ class BBHeppy( Analyzer ):
         event.leadingJet=[]
 #       self.studyMergeBToD(event)
 
+        for D in event.genBToDHadrons :
+            D.PtRel = -1
+            D.BtoDdeltaR = -1
+            if D.BDecayPoint != None :
+                pvToB=(D.BDecayPoint-event.PV.position())
+                pvToBdirection = ROOT.TVector3(pvToB.x(), pvToB.y(), pvToB.z())
+                momentum = ROOT.TVector3(D.X(), D.Y(), D.Z())
+                cos = momentum.Dot(pvToBdirection)/momentum.Mag()/pvToBdirection.Mag()
+                sin = math.sqrt(1-cos*cos)
+                D.PtRel = sin*momentum.Mag()
+#                if D.DDecayPoint != None :
+#                    pvToD=(D.DDecayPoint-event.PV.position())
+#                    pvToDdirection = ROOT.TVector3(pvToD.x(), pvToD.y(), pvToD.z())
+#                    D.BtoDdeltaR = self.myDeltaR(pvToDdirection, pvToBdirection)
+
+
         for sv in event.ivf :
             sv.direction=(sv.vertex()-event.PV.position())
             sv.CMSCoordinates = sv.vertex()
-#            sv.directionUnit=sv.direction/sv.direction.mag()
-        event.selectedSVs = [sv for sv in event.ivf if sv.p4().M() > 1.5 and sv.p4().M() <6. and sv.numberOfDaughters()>2 and abs(sv.direction.eta()) < 2 and sv.p4().pt() > 8.
-          and sv.dxy.significance() > 3 and sv.d3d.significance() > 5  and sv.cosTheta > 0.95 ]#and sv.direction.perp2() < 4. ] 
+            SVDirection = ROOT.TVector3(sv.direction.x(), sv.direction.y(), sv.direction.z())
+            momentum = ROOT.TVector3(sv.p4().X(), sv.p4().Y(), sv.p4().Z())
+            sv.PtRel = -1
+            if momentum.Mag() > 0.1 :
+                cosTheta = momentum.Dot(SVDirection)/SVDirection.Mag()/momentum.Mag()
+                sinTheta = math.sqrt(1-cosTheta*cosTheta)
+                sv.PtRel = sinTheta*momentum.Mag()
+        event.selectedSVs = [sv for sv in event.ivf if self.svIsSelected(sv)]
 #        print len(event.selectedSVs)       , len(event.ivf) 
+        event.selectedSVsSelected = []
         event.selectedSVsSelected = self.selectVertices(event.selectedSVs)
-        if len(event.selectedSVsSelected) != 2 and len(event.genBHadrons) < 2 :
-          return False
+        if len(event.ivf)  < 1 :
+            return False
         infBMatch = self.infForMatching(event, event.genBHadrons)
         infDMatch = self.infForMatching(event, event.genDHadrons)
         if len(event.selectedSVsSelected) == 2  :

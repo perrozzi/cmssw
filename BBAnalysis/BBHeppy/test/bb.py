@@ -25,6 +25,7 @@ treeProducer= cfg.Analyzer(
    	        "ivf" : NTupleCollection("ivf", svType, 50, help="Selected secondary vertices from ttH guys"),
                 "genBHadrons"  : NTupleCollection("GenBHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level B hadrons"),
                 "genDHadrons"  : NTupleCollection("GenDHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level D hadrons"),
+                "genBToDHadrons"  : NTupleCollection("GenDfromBHad", GenDfromBHadType, 20, mcOnly=True, help="Gen-level D hadrons from B"),
                 "genFirstb"  : NTupleCollection("genFirstb", bQuarkType, 20, mcOnly=True, help="Gen-level first b quarks"),
                 "genLastb"  : NTupleCollection("genLastb", bQuarkType, 20, mcOnly=True, help="Gen-level last b quarks"),
                 "mergeablePairs" : NTupleCollection("mergeablePairs", vertexPairType, 100, help=" pairs"), 
@@ -136,6 +137,7 @@ output_service = cfg.Service(
 sample = cfg.Component(
     files = ['/scratch/mandorli/CMSSW_7_6_3/src/QCD_Pt-1800to2400.root'],
 #    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-120to170.root'],
+#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-300to470.root'],
     name="SingleSample", isEmbed=False
     )
 
@@ -156,6 +158,6 @@ config.preprocessor=preprocessor
 # and the following runs the process directly if running as with python filename.py  
 if __name__ == '__main__':
     from PhysicsTools.HeppyCore.framework.looper import Looper 
-    looper = Looper( 'Loop', config, nPrint = 5,nEvents=1000) 
+    looper = Looper( 'Loop', config, nPrint = 5,nEvents=8000) 
     looper.loop()
     looper.write()

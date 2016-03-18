@@ -14,6 +14,17 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
     def beginLoop(self, setup):
         super(ttHHeavyFlavourHadronAnalyzer,self).beginLoop(setup)
 
+    def makeBToDHadrons(self, B, D, event) :
+        Dp4 = D.p4()
+        Dp4.BDecayPoint = None
+        Dp4.DDecayPoint = None
+        if B.numberOfDaughters() > 0 :
+            Dp4.BDecayPoint = B.daughter(0).vertex()
+        if D.numberOfDaughters() > 0 :
+            Dp4.DDecayPoint = D.daughter(0).vertex()
+        event.genBToDHadrons.append(Dp4)
+
+
     def makeFirstAndLastb(self, event) :
         bIndex = 0
         for g in event.genParticles:
@@ -79,6 +90,8 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
         event.genLastb = [] 
         event.genFirstb = [] 
         heavyHadrons = []
+        event.genBToDHadrons = []
+
         for g in event.genParticles:
             if g.status() != 2 or abs(g.pdgId()) < 100: continue
             myflav = flav(g)
@@ -96,6 +109,7 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
                     if mom.status() != 2 or abs(mom.pdgId()) < 100: break
                     if flav(mom) == 5:
                         heaviestInChain = False
+                        self.makeBToDHadrons(mom, g, event)
                         break
                     mom = mom.motherRef() if mom.numberOfMothers() > 0 else None
                 if not heaviestInChain: continue

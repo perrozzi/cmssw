@@ -70,7 +70,14 @@ vertexType = NTupleObjectType("vertex",  baseObjectTypes = [ fourVectorType ], v
 #    NTupleVariable("z",  lambda x : x.z(), help="z coordinate"),
 ])
 
+GenDfromBHadType = NTupleObjectType("genBToDHadrons",  baseObjectTypes = [ fourVectorType ], variables = [
+    NTupleVariable("PtRel",  lambda x : x.PtRel, help="PtRel of D respecto to B flight direction"),
+    NTupleVariable("BToDdeltaR2",  lambda x : x.BtoDdeltaR, help="delta R squared between B and D"),
+#    NTupleVariable("y",  lambda x : x.y(), help="y coordinate"),
+#    NTupleVariable("z",  lambda x : x.z(), help="z coordinate"),
+])
  
+
 heavyFlavourHadronType = NTupleObjectType("heavyFlavourHadron", baseObjectTypes = [ genParticleType ], variables = [
     NTupleVariable("flav", lambda x : x.flav, int, mcOnly=True, help="Flavour"),
     NTupleVariable("sourceId", lambda x : x.sourceId, int, mcOnly=True, help="pdgId of heaviest mother particle (stopping at the first one heaviest than 175 GeV)"),
@@ -110,10 +117,11 @@ svType = NTupleObjectType("sv", baseObjectTypes = [ fourVectorType ], variables 
     NTupleVariable("CMSphi",   lambda x : x.CMSCoordinates.phi(), help="phi coordinate in CMS"),
     NTupleVariable("dirEta",   lambda x : x.direction.eta()),
     NTupleVariable("dirPhi",   lambda x : x.direction.phi()),
+    NTupleVariable("PtRel",   lambda x : x.PtRel, help="PtRel between momentum and flight direction"),
     NTupleVariable("ntracks", lambda x : x.numberOfDaughters(), int, help="Number of tracks (with weight > 0.5)"),
+    NTupleVariable("isMerged", lambda x : x.ism, help="number of times this vertex merged"),
     NTupleVariable("chi2", lambda x : x.vertexChi2(), help="Chi2 of the vertex fit"),
     NTupleVariable("ndof", lambda x : x.vertexNdof(), help="Degrees of freedom of the fit, ndof = (2*ntracks - 3)" ),
-#    NTupleVariable("isMerged", lambda x : x.isMerged, help="true if this vertex is two vertices merged by ProducerBToD " ),
     NTupleVariable("dxy",  lambda x : x.dxy.value(), help="Transverse distance from the PV [cm]"),
     NTupleVariable("sdxy",  lambda x : x.dxy.significance(), help="Significance Transverse distance from the PV [cm]"),
     NTupleVariable("edxy", lambda x : x.dxy.error(), help="Uncertainty on the transverse distance from the PV [cm]"),

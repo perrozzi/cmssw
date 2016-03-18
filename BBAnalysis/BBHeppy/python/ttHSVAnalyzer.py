@@ -37,6 +37,8 @@ class ttHSVAnalyzer( Analyzer ):
     def declareHandles(self):
         super(ttHSVAnalyzer, self).declareHandles()
         self.handles['ivf'] = AutoHandle( self.cfg_ana.sv,'std::vector<reco::VertexCompositePtrCandidate>')
+        self.handles['ivfismerged'] = AutoHandle((self.cfg_ana.sv,'ifMerged'),'std::vector<int>')
+        #self.handles['isMerged'] =  AutoHandle('btod', 'isMerged', 'bool' )
         #self.handles['isMerged'] =  AutoHandle('btod', 'isMerged', 'bool' )
         self.mchandles['packedGen'] = AutoHandle( 'packedGenParticles', 'std::vector<pat::PackedGenParticle>' )
 
@@ -49,7 +51,10 @@ class ttHSVAnalyzer( Analyzer ):
 
         #get all vertices from IVF
         allivf = [ v for v in self.handles['ivf'].product() ]
-       
+        allivfIsMerged = [ v for v in self.handles['ivfismerged'].product() ]
+        for i in range(0,len(allivf)) :
+            allivf[i].ism = allivfIsMerged[i]
+
         # attach distances to PV
         pv = event.goodVertices[0] if len(event.goodVertices)>0 else event.vertices[0]
         #idx = 0

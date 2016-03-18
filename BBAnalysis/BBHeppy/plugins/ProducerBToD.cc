@@ -107,7 +107,7 @@ class ProducerBToD : public edm::stream::EDProducer<> {
        struct VertexProxy{
          reco::VertexCompositePtrCandidate vert;
          double significance3D;
-         bool itIsMerged;
+         int itIsMerged;
        };
 
 
@@ -185,7 +185,7 @@ ProducerBToD::ProducerBToD(const edm::ParameterSet& iConfig)
 
 
    produces<std::vector<reco::VertexCompositePtrCandidate> >(); 
-   produces<std::vector<bool> >("ifMerged"); 
+   produces<std::vector<int> >("ifMerged"); 
 
    //register your products
 /* Examples
@@ -229,7 +229,7 @@ ProducerBToD::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 ////  maxvecSumIMCUTForUnique = 4.5;
 //  maxTOTALmassForUnique = 6.5;
 
-  maxDRForUnique = 0.3;
+  maxDRForUnique = 0.1;
   maxPtreltomerge = 6;
   minCosPAtomerge = 0.8;    // 36 deg
 //  maxvecSumIMCUTForUnique = 4.5;
@@ -248,7 +248,7 @@ ProducerBToD::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 
     std::auto_ptr<std::vector<reco::VertexCompositePtrCandidate> >  output(new std::vector<reco::VertexCompositePtrCandidate>);
-    std::auto_ptr<std::vector<bool> >  ifMerged(new std::vector<bool>);
+    std::auto_ptr<std::vector<int> >  ifMerged(new std::vector<int>);
 
 // make the first selected vertices
   std::vector<VertexProxy>  SecondaryVerticesProxy;
@@ -257,15 +257,15 @@ ProducerBToD::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
       VertexProxy secondaryAUX;
       secondaryAUX.vert = *itSV;
       secondaryAUX.significance3D = GetSignificance(*itSV);
-      secondaryAUX.itIsMerged = false;
+      secondaryAUX.itIsMerged = 0;
       SecondaryVerticesProxy.push_back(secondaryAUX);
     }
   }
 
   sort( SecondaryVerticesProxy.begin(), SecondaryVerticesProxy.end()); // SecondaryVerticesProxy[0] is the one with less significance
 
-  unsigned int SVsizeBeforeMerging=SecondaryVerticesProxy.size();
-//  bool b1= false;
+//  unsigned int SVsizeBeforeMerging=SecondaryVerticesProxy.size();
+
     for(unsigned int kVtx=SecondaryVerticesProxy.size(); kVtx>0 && SecondaryVerticesProxy.size()>1; --kVtx){
 //      int tempSize = SecondaryVerticesProxy.size();
       // remove D vertices from the collection and add the tracks to the original one
@@ -273,8 +273,8 @@ ProducerBToD::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 
     }
 
-    if(SVsizeBeforeMerging > SecondaryVerticesProxy.size())
-     cout << "Ho unito " << SVsizeBeforeMerging - SecondaryVerticesProxy.size() << " su " << SVsizeBeforeMerging <<endl;
+//    if(SVsizeBeforeMerging > SecondaryVerticesProxy.size())
+//     cout << "Ho unito " << SVsizeBeforeMerging - SecondaryVerticesProxy.size() << " su " << SVsizeBeforeMerging <<endl;
 
 
   // print the significance of the vertices in order
@@ -289,9 +289,10 @@ ProducerBToD::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 
   for(std::vector<VertexProxy>::const_iterator itSV = SecondaryVerticesProxy.begin(); itSV!=SecondaryVerticesProxy.end(); itSV++) {
-    if(!itIsInLayers(itSV->vert)) 
+    if(!itIsInLayers(itSV->vert)) {
       output->push_back(itSV->vert);
       ifMerged->push_back(itSV->itIsMerged);
+    }
   }
 
 
@@ -362,12 +363,14 @@ void ProducerBToD::resolveBtoDchain(std::vector<VertexProxy> & coll,  unsigned i
         p4Near = coll[nearIdxTemp].vert.p4();
         p4Far = coll[farIdxTemp].vert.p4();
         TVector3 momentumFar(p4Far.X(), p4Far.Y(), p4Far.Z());
+//        TVector3 momentumNear(p4Near.X(), p4Near.Y(), p4Near.Z());
+//        double cosPP =  momentumNear.Dot(momentumFar) / momentumFar.Mag()/ momentumNear.Mag();
         double cosPA =  nearToFar.Dot(momentumFar) / momentumFar.Mag()/ nearToFar.Mag();
         double cosa  =  pvToNear. Dot(momentumFar) / pvToNear.Mag()   / momentumFar.Mag();
         double ptRel = sqrt(1.0 - cosa*cosa)* momentumFar.Mag();
 
         // Qui stanno tutte le condizioni per unire i due vertici, tranne una. La massa invariante sta dopo
-        if((cosPA > minCosPAtomerge) && (ptRel < maxPtreltomerge) && (ptRel < ptRelMin) && (p4Near.mass() > 1.2 ) && (p4Far.mass()<2.0)) {
+        if((cosPA > minCosPAtomerge) && (ptRel < maxPtreltomerge) && (ptRel < ptRelMin) && (p4Near.mass() > 1.2 ) && (p4Far.mass()<2.0) ) {
 //        if((cosPA > minCosPAtomerge) && (ptRel < maxPtreltomerge) && (ptRel < ptRelMin) && (p4Near.mass() > 0.8 )){// && (p4Far.mass()<2.0)) {
           farIdx=farIdxTemp;
           nearIdx=nearIdxTemp;
@@ -398,8 +401,9 @@ void ProducerBToD::resolveBtoDchain(std::vector<VertexProxy> & coll,  unsigned i
 
   if(itIsInLayers(coll[index_moreSignVertex].vert)) {
     if(!itIsInLayers(coll[index_lessSignVertex].vert)) {
+      unsigned int tempIdx = index_moreSignVertex;
       index_moreSignVertex = index_lessSignVertex;
-      index_lessSignVertex = index_moreSignVertex;
+      index_lessSignVertex = tempIdx;
     }
     else
       found = false;
@@ -452,9 +456,9 @@ void ProducerBToD::resolveBtoDchain(std::vector<VertexProxy> & coll,  unsigned i
           coll[index_moreSignVertex].vert.setP4( (*ti)->p4() + coll[index_moreSignVertex].vert.p4() );
         }
       }
-    coll[index_moreSignVertex].itIsMerged = true;
+    coll[index_moreSignVertex].itIsMerged = coll[index_moreSignVertex].itIsMerged + coll[index_lessSignVertex].itIsMerged + 1;
     coll.erase( coll.begin() + index_lessSignVertex  );
-
+//    if (baco) std::cout << "They merged!" << std::endl;
     }
   }
 
@@ -492,11 +496,22 @@ void ProducerBToD::resolveBtoDchain(std::vector<VertexProxy> & coll,  unsigned i
 //SECONDARY VERTEX FIRST SELECTION
 bool ProducerBToD::PassAFisrtSelection(reco::VertexCompositePtrCandidate secVert) {
 
+  bool vertexToKeep = true;
+
+  TVector3 ppv(pv.position().x(),pv.position().y(),pv.position().z());
+  TVector3 SecondaryVertexPosition(secVert.position().x(), secVert.position().y(), secVert.position().z());
   double dinstanceFromCMSCenterSquared = secVert.position().x()*secVert.position().x()+secVert.position().y()*secVert.position().y();
+
+  TVector3 pvToSv= SecondaryVertexPosition - ppv;
+  TVector3 SecondaryVertexMomentum(secVert.p4().X(), secVert.p4().Y(), secVert.p4().Z());
+  double cos_DirectionMomentum = SecondaryVertexMomentum.Dot(pvToSv)/SecondaryVertexMomentum.Mag()/pvToSv.Mag();
+
   if(dinstanceFromCMSCenterSquared > 96) //this cut SV from the third layer
-    return false;
-  else
-    return true;
+    vertexToKeep = false;
+  if(cos_DirectionMomentum < 0.5) //this cut SV from the third layer
+    vertexToKeep = false;
+
+  return vertexToKeep;
 }
 
 //  LOOK IF THE sv IS IN A LAYER
