@@ -120,7 +120,43 @@ ttHSVAna =  cfg.Analyzer(
 from PhysicsTools.Heppy.analyzers.objects.VertexAnalyzer import VertexAnalyzer
 VertexAna = VertexAnalyzer.defaultConfig
 
-sequence = [VertexAna,ttHSVAna,ttHHFAna,BBAna,treeProducer]
+
+from PhysicsTools.Heppy.analyzers.core.TriggerBitAnalyzer import TriggerBitAnalyzer
+
+triggerTable = {
+   "DiJetMu" : [
+       "HLT_BTagMu_DiJet20_Mu5_v*",
+       "HLT_BTagMu_DiJet40_Mu5_v*",
+       "HLT_BTagMu_DiJet70_Mu5_v*",
+       "HLT_BTagMu_DiJet110_Mu5_v*",
+   ],
+   "HT" : [
+       "HLT_PFHT200_v*",
+       "HLT_PFHT250_v*",
+       "HLT_PFHT300_v*",
+       "HLT_PFHT400_v*",
+   ],
+   "PFJet" : [
+       "HLT_PFJet40_v*",
+       "HLT_PFJet60_v*",
+       "HLT_PFJet80_v*",
+       "HLT_PFJet140_v*",
+       "HLT_PFJet200_v*",
+       "HLT_PFJet260_v*",
+       "HLT_PFJet320_v*",
+       "HLT_PFJet400_v*",
+       "HLT_PFJet500_v*",
+   ],
+}
+
+TrigAna = cfg.Analyzer(
+   verbose = False,
+   unrollbits=True,
+   class_object = TriggerBitAnalyzer,
+   triggerBits = triggerTable,  #default is MC, use the triggerTableData in -data.py files
+  )
+
+sequence = [TrigAna, VertexAna,ttHSVAna,ttHHFAna,BBAna,treeProducer]
 
 #use tfile service to provide a single TFile to all modules where they
 #can write any root object. If the name is 'outputfile' or the one specified in treeProducer
@@ -158,6 +194,6 @@ config.preprocessor=preprocessor
 # and the following runs the process directly if running as with python filename.py  
 if __name__ == '__main__':
     from PhysicsTools.HeppyCore.framework.looper import Looper 
-    looper = Looper( 'Loop', config, nPrint = 5,nEvents=8000) 
+    looper = Looper( 'Loop', config, nPrint = 5,nEvents=3000) 
     looper.loop()
     looper.write()

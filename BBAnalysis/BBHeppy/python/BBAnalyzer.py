@@ -24,6 +24,8 @@ class BBHeppy( Analyzer ):
 #        self.handles['SV'] =  AutoHandle( 'slimmedSecondaryVertices','std::vector<reco::VertexCompositePtrCandidate>')
         self.mchandles['packedGen'] = AutoHandle( 'packedGenParticles', 'std::vector<pat::PackedGenParticle>' )
         self.handles['PV'] =  AutoHandle( 'offlineSlimmedPrimaryVertices','std::vector<reco::Vertex>' )
+        self.mchandles['pileUp_source'] =  AutoHandle( 'slimmedAddPileupInfo','vector<PileupSummaryInfo>' )
+        self.mchandles['generator_source'] =  AutoHandle( 'generator','GenEventInfoProduct' )
     def beginLoop(self,setup):
         super(BBHeppy,self).beginLoop(setup)
         if "outputfile" in setup.services :
@@ -80,12 +82,12 @@ class BBHeppy( Analyzer ):
 
     def  svIsSelected(self, sv) :
         isSelected = False
-        if sv.p4().M() > 1. and sv.p4().M() <5. and sv.numberOfDaughters()>2 and abs(sv.direction.eta()) < 2 and sv.p4().pt() > 8. and sv.dxy.significance() > 3 :
+        if sv.p4().M() > 1. and sv.p4().M() <5. and sv.numberOfDaughters()>1 and abs(sv.direction.eta()) < 2 and sv.p4().pt() > 8. and sv.dxy.significance() > 3 :
          if sv.d3d.significance() > 5  and sv.cosTheta > 0.95  and sv.direction.perp2()*sv.p4().M()*sv.p4().M()/sv.p4().pt()/sv.p4().pt() > 0.00025 :
           if sv.direction.perp2()*sv.p4().M()*sv.p4().M()/sv.p4().pt()/sv.p4().pt() < 0.15 :
            if log10(sv.direction.perp2()*sv.p4().M()*sv.p4().M()) - 0.4*log10(sv.p4().pt()) < 1.9  :#  and sv.direction.perp2() < 4. 
-        #Remember to ask just one ivf with 3 tracks
-            isSelected = True
+            if sv.secD3dTracks > 4. and sv.PtRel < 2.5 and sv.PtRel > 0 :
+             isSelected = True
         return isSelected
 
     def studyMergeBToD(self,event) :
@@ -105,30 +107,16 @@ class BBHeppy( Analyzer ):
                        event.mergeablePairs.append(thisPair)  
 
     def selectVertices(self,selectedSVs) :
-      if len(selectedSVs) >= 2 :
         selectedSVs.sort(key = lambda sv : abs(sv.p4().M()), reverse = True)
-        newSV = []
-        if selectedSVs[0].p4().M() < 2. :
-            return newSV
-        if len(selectedSVs) == 2 :
-            if selectedSVs[0].numberOfDaughters() > 2 or selectedSVs[1].numberOfDaughters() > 2 and selectedSVs[0].p4().M() + selectedSVs[1].p4().M() < 9. :
-                return selectedSVs
-            else :
+        newSV = [sv for sv in selectedSVs if sv.numberOfDaughters()> 2]
+        if len(newSV) == 2 :
+            if newSV[0].p4().M() > 2. and newSV[0].p4().M() + newSV[1].p4().M() < 9. :
                 return newSV
-        else :
-            newSV = [sv for sv in selectedSVs if sv.numberOfDaughters()]
-            if len(newSV) == 2 :
-                if newSV[0].p4().M() > 2. and newSV[0].p4().M() + newSV[1].p4().M() < 9. :
-                    return newSV
-            return []
-      else:
-        return selectedSVs
-#        elif len(selectedSVs) == 3 :
-#            if selectedSVs[0].p4().M() + selectedSVs[1].p4().M() > 4.5 and selectedSVs[0].p4().M() + selectedSVs[2].p4().M() < 4.5 :
-#                newSV = []
-#                newSV.append(selectedSVs[0])
-#                newSV.append(selectedSVs[1])
-#                return newSV
+        if len(selectedSVs) == 2 :
+            if selectedSVs[0].p4().M() > 2. and selectedSVs[0].p4().M() + selectedSVs[1].p4().M() < 9. :
+                if selectedSVs[0].numberOfDaughters()> 2 or selectedSVs[1].numberOfDaughters()> 2 :
+                    return selectedSVs
+        return []
 
 
 
@@ -231,6 +219,19 @@ class BBHeppy( Analyzer ):
 #        event.SVs=list(self.handles['SV'].product())
         event.PV=self.handles['PV'].product()[0]
 
+#       keep the event only if PV is the vertex with bigger pt_hat
+        event.generatorSource = self.mchandles['generator_source']
+        event.pileUpSource = self.mchandles['pileUp_source']
+        event.ptHat = event.generatorSource.product().qScale()
+        maxPUptHat = -1
+        for PUInteraction in range(event.pileUpSource.product().size()) :
+            if event.pileUpSource.product().at(PUInteraction).getBunchCrossing() == 0 :
+                maxPUptHat = max(maxPUptHat,event.pileUpSource.product().at(PUInteraction).getPU_pT_hats())
+        if event.ptHat < maxPUptHat :
+            return False
+
+
+
         event.mergeablePairs = [] 
         event.bbPairSystem = [] 
         event.genBbPairSystem = [] 
@@ -267,7 +268,6 @@ class BBHeppy( Analyzer ):
                 sv.PtRel = sinTheta*momentum.Mag()
         event.selectedSVs = [sv for sv in event.ivf if self.svIsSelected(sv)]
 #        print len(event.selectedSVs)       , len(event.ivf) 
-        event.selectedSVsSelected = []
         event.selectedSVsSelected = self.selectVertices(event.selectedSVs)
         if len(event.ivf)  < 1 :
             return False
@@ -279,7 +279,7 @@ class BBHeppy( Analyzer ):
               map(daughters.add,svs[0].daughterPtrVector())
               map(daughters.add,svs[1].daughterPtrVector())
               thisPair=sum([x.p4() for x in daughters], ROOT.reco.Particle.LorentzVector(0.,0.,0.,0.))
-              thisPair.numberOfSVinThisEvent=len(event.selectedSVs)
+#              thisPair.numberOfSVinThisEvent=len(event.selectedSVs)
               thisPair.numberOfBinThisEvent=len(event.genBHadrons)
               thisPair.B0=event.ivf.index(svs[0])
               thisPair.B1=event.ivf.index(svs[1])
@@ -290,6 +290,9 @@ class BBHeppy( Analyzer ):
               thisPair.deltaRjet=deltaR(event.bjets[0],event.bjets[1])
               thisPair.numberOfSharedTracks=self.numberOfSharedTracks(event,svs[0],svs[1])
               thisPair.SIPsOfTheShareds=self.SIPsOfTheShareds(event,svs[0],svs[1])
+              jetsMomentum = event.bjets[0] + event.bjets[1]
+              thisPair.jetsPt = jetsMomentum.pt()
+              thisPair.jetsMass = jetsMomentum.mass()
               if infBMatch[1]==0 :
                 thisPair.deltaRForBMatch0 = infBMatch[4]
                 thisPair.deltaRForBMatch1 = infBMatch[5]
@@ -307,8 +310,8 @@ class BBHeppy( Analyzer ):
         if len(event.genBHadrons) == 2 :
               event.genBjets=self.clusterizeGenParticles(event,event.genBHadrons[0],event.genBHadrons[1])
               thisGenPair=event.genBjets[0]+event.genBjets[1]
-              thisGenPair.numberOfSVinThisEvent=len(event.selectedSVs)
-              thisGenPair.numberOfSelectedSVinThisEvent=len(event.selectedSVsSelected)
+#              thisGenPair.numberOfSVinThisEvent=len(event.selectedSVs)
+#              thisGenPair.numberOfSelectedSVinThisEvent=len(event.selectedSVsSelected)
               thisGenPair.deltaRHad=deltaR(event.genBHadrons[0],event.genBHadrons[1])
               thisGenPair.deltaRJet=deltaR(event.genBjets[0],event.genBjets[1])
               thisGenPair.deltaRLastb =deltaR(event.genBHadrons[0].lastb,event.genBHadrons[1].lastb)
