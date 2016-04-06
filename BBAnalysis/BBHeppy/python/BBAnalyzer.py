@@ -223,12 +223,18 @@ class BBHeppy( Analyzer ):
         event.generatorSource = self.mchandles['generator_source']
         event.pileUpSource = self.mchandles['pileUp_source']
         event.ptHat = event.generatorSource.product().qScale()
+#        foundPU = False
         maxPUptHat = -1
         for PUInteraction in range(event.pileUpSource.product().size()) :
             if event.pileUpSource.product().at(PUInteraction).getBunchCrossing() == 0 :
-                maxPUptHat = max(maxPUptHat,event.pileUpSource.product().at(PUInteraction).getPU_pT_hats())
+                for PUpyHadIterator in event.pileUpSource.product().at(PUInteraction).getPU_pT_hats() :
+                    maxPUptHat = max(maxPUptHat, PUpyHadIterator) 
+#        if foundPU :
+#        print event.ptHat, maxPUptHat
+        event.maxPUptHat = maxPUptHat
         if event.ptHat < maxPUptHat :
             return False
+#            print "hereeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
 
 
 
