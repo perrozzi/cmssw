@@ -233,7 +233,7 @@ ProducerBToD::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   maxPtreltomerge = 6;
   minCosPAtomerge = 0.8;    // 36 deg
 //  maxvecSumIMCUTForUnique = 4.5;
-  maxTOTALmassForUnique = 6.;
+  maxTOTALmassForUnique = 5.;
 
 //get the informations in slimmedSecondaryVertices
   Handle<std::vector<reco::VertexCompositePtrCandidate> > SecondaryVerticesCollection;
@@ -547,7 +547,7 @@ bool ProducerBToD::itIsInLayers(reco::VertexCompositePtrCandidate secVert) {
             inLayer = true;
     }
 
-    if (((rho > 3.7) && (rho < 3.74)) || ((rho > 2.15) && (rho < 2.25)))
+    if (((rho > 3.7) && (rho < 3.74)) || ((rho > 2.15) && (rho < 2.27)))
         inLayer = true;
 
     return inLayer;

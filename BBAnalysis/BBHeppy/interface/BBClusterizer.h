@@ -28,7 +28,7 @@ class BBClusterizer {
 
   /// get grouping (inclusive jets)
   std::vector<LorentzVector> getBJets();
-  LorentzVector GetLeadingJet();
+  std::vector<LorentzVector> GetLeadingJets();
 
  private:
   // pack the returns in a fwlite-friendly way

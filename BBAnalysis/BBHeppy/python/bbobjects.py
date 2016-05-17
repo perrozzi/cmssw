@@ -51,6 +51,7 @@ bbPairType = NTupleObjectType("bbPair",  baseObjectTypes = [ fourVectorType ], v
      NTupleVariable("deltaRForDMatch1",  lambda x : x.deltaRForDMatch1, help="deltaR of matched D with SV1"),
      NTupleVariable("jetsPt",  lambda x : x.jetsPt, help="Pt of the jet Pair"),
      NTupleVariable("jetsMass",  lambda x : x.jetsMass, help="invariant mass of the jet Pair"),
+     NTupleVariable("jetsPtByMass",  lambda x : x.jetsPtByMass, help="Pt divided by mass of the jet Pair"),
 ])
 
 bQuarkType = NTupleObjectType("bQuarks",  baseObjectTypes = [ fourVectorType ], variables = [
@@ -147,4 +148,10 @@ svType = NTupleObjectType("sv", baseObjectTypes = [ fourVectorType ], variables 
     NTupleVariable("secD3dTracks", lambda x : x.secD3dTracks, help="second highest |ip3D| of vertex tracks"),
 
 ])
+
+
+#JetsType = NTupleObjectType("Jets",  baseObjectTypes = [ fourVectorType ], variables = [
+#])
+
+
 

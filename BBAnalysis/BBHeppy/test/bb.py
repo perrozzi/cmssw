@@ -16,6 +16,8 @@ treeProducer= cfg.Analyzer(
         #here the list of simple event variables (floats, int) can be specified
         globalVariables = [
         #     NTupleVariable("rho",  lambda ev: ev.rho, float, help="jets rho"),
+              NTupleVariable("ptHat",  lambda ev: ev.ptHat, float, help="pt_hat of the event"),
+              NTupleVariable("maxPUptHat",  lambda ev: ev.maxPUptHat, float, help="max pt_hat of PU interacions"),
         ],
         #here one can specify compound objects 
         globalObjects = {
@@ -33,7 +35,8 @@ treeProducer= cfg.Analyzer(
                 "genBbPairSystem" : NTupleCollection("genBbPairSystem", genBbPairType, 10, help="bb pairs",mcOnly=True), 
 	        "bjets"       : NTupleCollection("bjets",     fourVectorType, 2, help="Jets from bb pair"),
 	        "genBjets"       : NTupleCollection("genBjets",     fourVectorType, 2, mcOnly=True, help="GenJets from bb pair"),
-	        "leadingJet"       : NTupleCollection("leadingJet",     fourVectorType, 1, help="leading recostructed jet"),
+	        "CAJets"       : NTupleCollection("CAJets",     fourVectorType, 10, help="recostructed jets"),
+	        "AK4Jets"       : NTupleCollection("AK4Jets",     fourVectorType, 10, help="recostructed jets"),
 		#The following would just store the electrons and muons from miniaod without any selection or cleaning
                 # only the basice particle information is saved
 		#"slimmedMuons" : ( AutoHandle( ("slimmedMuons",), "std::vector<pat::Muon>" ),
@@ -137,6 +140,7 @@ triggerTable = {
        "HLT_PFHT400_v*",
    ],
    "PFJet" : [
+       "HLT_ZeroBias_v*",
        "HLT_PFJet40_v*",
        "HLT_PFJet60_v*",
        "HLT_PFJet80_v*",

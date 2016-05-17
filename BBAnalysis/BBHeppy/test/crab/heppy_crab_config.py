@@ -1,5 +1,5 @@
 from WMCore.Configuration import Configuration
-version='V50'
+version='V71'
 config = Configuration()
 
 config.section_("General")

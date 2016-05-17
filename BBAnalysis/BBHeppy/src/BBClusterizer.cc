@@ -111,11 +111,24 @@ std::vector<math::XYZTLorentzVector> BBClusterizer::getBJets() {
   return makeP4s(JetsWithB);
 }
 
-math::XYZTLorentzVector BBClusterizer::GetLeadingJet() {
+std::vector<math::XYZTLorentzVector> BBClusterizer::GetLeadingJets() {
 
   vector<PseudoJet> jets = fastjet::sorted_by_pt(fjClusterSeq_->inclusive_jets());
-  return LorentzVector( jets[0].px(), jets[0].py(), jets[0].pz(), jets[0].e() );
+  std::vector<math::XYZTLorentzVector> LeadingJets;
+//  math::XYZTLorentzVector nullLorentzVector = LorentzVector(0, 0, 0, 0);
+  math::XYZTLorentzVector tempLorentzVector = LorentzVector(0, 0, 0, 0);
 
+  for(unsigned int i = 0; i<10; i++) {
+
+    if(jets.size() > i) {
+      tempLorentzVector = LorentzVector( jets[i].px(), jets[i].py(), jets[i].pz(), jets[i].e() );
+      LeadingJets.push_back(tempLorentzVector);
+    }
+//    else
+//      LeadingJets.push_back(nullLorentzVector);
+  }
+
+  return LeadingJets;
 }
 
 bool BBClusterizer::SVIsInTheJet(const fastjet::PseudoJet & pj) {
