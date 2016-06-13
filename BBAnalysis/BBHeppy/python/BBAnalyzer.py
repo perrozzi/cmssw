@@ -86,7 +86,7 @@ class BBHeppy( Analyzer ):
         if sv.p4().M() > 1. and sv.p4().M() <5. and sv.numberOfDaughters()>1 and abs(sv.direction.eta()) < 2.0 and sv.p4().pt() > 8. :
          if sv.d3d.significance() > 5  and sv.dxy.significance() > 3 and sv.cosTheta > 0.95  :
           if  sv.direction.perp2()*sv.p4().M()*sv.p4().M()/sv.p4().pt()/sv.p4().pt() > 0.00025 or sv.p4().M() > 2.:
-           if sv.direction.perp2()*sv.p4().M()*sv.p4().M()/sv.p4().pt()/sv.p4().pt() < 0.15 :
+           if sv.direction.perp2()*sv.p4().M()*sv.p4().M()/sv.p4().pt()/sv.p4().pt() < 0.15 and  sv.p4().pt() < 400 :
             if log10(sv.direction.perp2()*sv.p4().M()*sv.p4().M()) - 0.4*log10(sv.p4().pt()) < 1.9  :#  and sv.direction.perp2() < 4. 
              if sv.secD3dTracks > 4. and sv.PtRel < 2.5 and sv.PtRel > 0 :
               isSelected = True
@@ -222,20 +222,23 @@ class BBHeppy( Analyzer ):
         event.PV=self.handles['PV'].product()[0]
 
 #       keep the event only if PV is the vertex with bigger pt_hat
-        event.generatorSource = self.mchandles['generator_source']
-        event.pileUpSource = self.mchandles['pileUp_source']
-        event.ptHat = event.generatorSource.product().qScale()
-        maxPUptHat = -1
-        for PUInteraction in range(event.pileUpSource.product().size()) :
-            if event.pileUpSource.product().at(PUInteraction).getBunchCrossing() == 0 :
-                for PUpyHadIterator in event.pileUpSource.product().at(PUInteraction).getPU_pT_hats() :
-                    maxPUptHat = max(maxPUptHat, PUpyHadIterator) 
-#        print event.ptHat, maxPUptHat
-        event.maxPUptHat = maxPUptHat
-        if event.ptHat < maxPUptHat :
-            return False
-#            print "hereeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-        self.inputCounter.Fill(1)
+        if self.cfg_comp.isMC :
+            event.generatorSource = self.mchandles['generator_source']
+            event.pileUpSource = self.mchandles['pileUp_source']
+            event.ptHat = event.generatorSource.product().qScale()
+            maxPUptHat = -1
+            for PUInteraction in range(event.pileUpSource.product().size()) :
+                if event.pileUpSource.product().at(PUInteraction).getBunchCrossing() == 0 :
+                    for PUpyHadIterator in event.pileUpSource.product().at(PUInteraction).getPU_pT_hats() :
+                        maxPUptHat = max(maxPUptHat, PUpyHadIterator) 
+    #        print event.ptHat, maxPUptHat
+            event.maxPUptHat = maxPUptHat
+            if event.ptHat < maxPUptHat :
+                return False
+    #            print "hereeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            self.inputCounter.Fill(1)
+        else :
+            self.inputCounter.Fill(1)
 
 
         event.mergeablePairs = [] 
@@ -247,7 +250,8 @@ class BBHeppy( Analyzer ):
         event.AK4Jets=[]
 #       self.studyMergeBToD(event)
 
-        for D in event.genBToDHadrons :
+        if self.cfg_comp.isMC :
+          for D in event.genBToDHadrons :
             D.PtRel = -1
             D.BtoDdeltaR = -1
             if D.BDecayPoint != None :
@@ -278,8 +282,11 @@ class BBHeppy( Analyzer ):
         event.selectedSVsSelected = self.selectVertices(event.selectedSVs)
         if len(event.ivf)  < 1 :
             return False
-        infBMatch = self.infForMatching(event, event.genBHadrons)
-        infDMatch = self.infForMatching(event, event.genDHadrons)
+        infBMatch = 0
+        infDMatch = 0
+        if self.cfg_comp.isMC :
+            infBMatch = self.infForMatching(event, event.genBHadrons)
+            infDMatch = self.infForMatching(event, event.genDHadrons)
         if len(event.selectedSVsSelected) == 2  :
           SIPsOfTheShareds_temp_for_check=self.SIPsOfTheShareds(event,event.selectedSVsSelected[0],event.selectedSVsSelected[1])
           if SIPsOfTheShareds_temp_for_check[0] < 6 :
@@ -289,12 +296,13 @@ class BBHeppy( Analyzer ):
               map(daughters.add,svs[1].daughterPtrVector())
               thisPair=sum([x.p4() for x in daughters], ROOT.reco.Particle.LorentzVector(0.,0.,0.,0.))
 #              thisPair.numberOfSVinThisEvent=len(event.selectedSVs)
-              thisPair.numberOfBinThisEvent=len(event.genBHadrons)
+              if self.cfg_comp.isMC :
+                thisPair.numberOfBinThisEvent=len(event.genBHadrons)
+                thisPair.mcDeltaR=deltaR(svs[0].mcHadron.p4(),svs[1].mcHadron.p4()) if svs[0].mcHadron is not None and  svs[1].mcHadron is not None else -1
               thisPair.B0=event.ivf.index(svs[0])
               thisPair.B1=event.ivf.index(svs[1])
               thisPair.deltaR=deltaR(svs[0].direction,svs[1].direction)
               thisPair.deltaRpp=deltaR(svs[0].p4(),svs[1].p4())
-              thisPair.mcDeltaR=deltaR(svs[0].mcHadron.p4(),svs[1].mcHadron.p4()) if svs[0].mcHadron is not None and  svs[1].mcHadron is not None else -1
               event.bjets=self.clusterize(event,svs[0].p4(),svs[1].p4(),daughters) 
               #AK4=self.handles['slimmedJets'].product()
               AK4=list(self.handles['slimmedJets'].product())
@@ -306,22 +314,25 @@ class BBHeppy( Analyzer ):
               thisPair.jetsPt = jetsMomentum.pt()
               thisPair.jetsMass = jetsMomentum.mass()
               thisPair.jetsPtByMass = jetsMomentum.pt()/jetsMomentum.mass()
-              if infBMatch[1]==0 :
-                thisPair.deltaRForBMatch0 = infBMatch[4]
-                thisPair.deltaRForBMatch1 = infBMatch[5]
-              else :
-                thisPair.deltaRForBMatch0 = infBMatch[5]
-                thisPair.deltaRForBMatch1 = infBMatch[4]
-              if infDMatch[1]==0 :
-                thisPair.deltaRForDMatch0 = infDMatch[4]
-                thisPair.deltaRForDMatch1 = infDMatch[5]
-              else :
-                thisPair.deltaRForDMatch0 = infDMatch[5]
-                thisPair.deltaRForDMatch1 = infDMatch[4]
+              if self.cfg_comp.isMC :
+                if infBMatch[1]==0 :
+                  thisPair.deltaRForBMatch0 = infBMatch[4]
+                  thisPair.deltaRForBMatch1 = infBMatch[5]
+                else :
+                  thisPair.deltaRForBMatch0 = infBMatch[5]
+                  thisPair.deltaRForBMatch1 = infBMatch[4]
+                if infDMatch[1]==0 :
+                  thisPair.deltaRForDMatch0 = infDMatch[4]
+                  thisPair.deltaRForDMatch1 = infDMatch[5]
+                else :
+                  thisPair.deltaRForDMatch0 = infDMatch[5]
+                  thisPair.deltaRForDMatch1 = infDMatch[4]
+
               if thisPair.SIPsOfTheShareds[0] < 4 :
                 event.bbPairSystem.append(thisPair)
 
-        if len(event.genBHadrons) == 2 :
+        if self.cfg_comp.isMC :
+          if len(event.genBHadrons) == 2 :
               event.genBjets=self.clusterizeGenParticles(event,event.genBHadrons[0],event.genBHadrons[1])
               thisGenPair=event.genBjets[0]+event.genBjets[1]
 #              thisGenPair.numberOfSVinThisEvent=len(event.selectedSVs)

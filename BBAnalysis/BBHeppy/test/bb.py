@@ -16,8 +16,8 @@ treeProducer= cfg.Analyzer(
         #here the list of simple event variables (floats, int) can be specified
         globalVariables = [
         #     NTupleVariable("rho",  lambda ev: ev.rho, float, help="jets rho"),
-              NTupleVariable("ptHat",  lambda ev: ev.ptHat, float, help="pt_hat of the event"),
-              NTupleVariable("maxPUptHat",  lambda ev: ev.maxPUptHat, float, help="max pt_hat of PU interacions"),
+              NTupleVariable("ptHat",  lambda ev: ev.ptHat, float, mcOnly=True, help="pt_hat of the event"),
+              NTupleVariable("maxPUptHat",  lambda ev: ev.maxPUptHat, float, mcOnly=True, help="max pt_hat of PU interacions"),
         ],
         #here one can specify compound objects 
         globalObjects = {
@@ -32,8 +32,8 @@ treeProducer= cfg.Analyzer(
                 "genLastb"  : NTupleCollection("genLastb", bQuarkType, 20, mcOnly=True, help="Gen-level last b quarks"),
                 "mergeablePairs" : NTupleCollection("mergeablePairs", vertexPairType, 100, help=" pairs"), 
                 "bbPairSystem" : NTupleCollection("bbPairSystem", bbPairType, 10, help="bb pairs"), 
-                "genBbPairSystem" : NTupleCollection("genBbPairSystem", genBbPairType, 10, help="bb pairs",mcOnly=True), 
-	        "bjets"       : NTupleCollection("bjets",     fourVectorType, 2, help="Jets from bb pair"),
+                "genBbPairSystem" : NTupleCollection("genBbPairSystem", genBbPairType, 10, mcOnly=True, help="bb pairs"), 
+	        "bjets"       : NTupleCollection("bjets",     fourVectorType, 2, mcOnly=True, help="Jets from bb pair"),
 	        "genBjets"       : NTupleCollection("genBjets",     fourVectorType, 2, mcOnly=True, help="GenJets from bb pair"),
 	        "CAJets"       : NTupleCollection("CAJets",     fourVectorType, 10, help="recostructed jets"),
 	        "AK4Jets"       : NTupleCollection("AK4Jets",     fourVectorType, 10, help="recostructed jets"),
@@ -175,13 +175,17 @@ output_service = cfg.Service(
     )
 
 sample = cfg.Component(
-    files = ['/scratch/mandorli/CMSSW_7_6_3/src/QCD_Pt-1800to2400.root'],
+    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/JetHT.root'],
+#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias.root','/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias3.root'],
+#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias1.root','/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias2.root','/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias3.root','/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias4.root'],
+#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias.root'],
+#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-1800to2400.root'],
 #    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-120to170.root'],
 #    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-300to470.root'],
     name="SingleSample", isEmbed=False
     )
 
-sample.isMC=True
+sample.isMC=False
 
 # the following is declared in case this cfg is used in input to the heppy.py script
 from PhysicsTools.HeppyCore.framework.eventsfwlite import Events
@@ -198,6 +202,6 @@ config.preprocessor=preprocessor
 # and the following runs the process directly if running as with python filename.py  
 if __name__ == '__main__':
     from PhysicsTools.HeppyCore.framework.looper import Looper 
-    looper = Looper( 'Loop', config, nPrint = 5,nEvents=3000) 
+    looper = Looper( 'Loop', config, nPrint = 5,nEvents=50000) 
     looper.loop()
     looper.write()
