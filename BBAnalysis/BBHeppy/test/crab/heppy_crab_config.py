@@ -1,5 +1,5 @@
 from WMCore.Configuration import Configuration
-version='V78'
+version='V95JETHT'
 config = Configuration()
 
 config.section_("General")
@@ -32,5 +32,6 @@ config.Data.outputDatasetTag = 'BBHeppy_'+version
 config.Data.allowNonValidInputDataset = True
 
 config.section_("Site")
+#config.Site.storageSite = "T2_IT_Legnaro"
 config.Site.storageSite = "T2_IT_Pisa"
 #config.Data.ignoreLocality = True

@@ -18,6 +18,7 @@ treeProducer= cfg.Analyzer(
         #     NTupleVariable("rho",  lambda ev: ev.rho, float, help="jets rho"),
               NTupleVariable("ptHat",  lambda ev: ev.ptHat, float, mcOnly=True, help="pt_hat of the event"),
               NTupleVariable("maxPUptHat",  lambda ev: ev.maxPUptHat, float, mcOnly=True, help="max pt_hat of PU interacions"),
+              NTupleVariable("isSignal",  lambda ev: ev.isSignal, float, mcOnly=True, help="if bb are fram the same gluon splitting"),
         ],
         #here one can specify compound objects 
         globalObjects = {
@@ -25,7 +26,8 @@ treeProducer= cfg.Analyzer(
         },
 	collections = {
    	        "ivf" : NTupleCollection("ivf", svType, 50, help="Selected secondary vertices from ttH guys"),
-                "genBHadrons"  : NTupleCollection("GenBHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level B hadrons"),
+                "genBHadrons"  : NTupleCollection("GenBHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level B hadrons with pt gt 15"),
+                "genAllBHadrons"  : NTupleCollection("GenAllBHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level B hadrons"),
                 "genDHadrons"  : NTupleCollection("GenDHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level D hadrons"),
                 "genBToDHadrons"  : NTupleCollection("GenDfromBHad", GenDfromBHadType, 20, mcOnly=True, help="Gen-level D hadrons from B"),
                 "genFirstb"  : NTupleCollection("genFirstb", bQuarkType, 20, mcOnly=True, help="Gen-level first b quarks"),
@@ -124,6 +126,7 @@ from PhysicsTools.Heppy.analyzers.objects.VertexAnalyzer import VertexAnalyzer
 VertexAna = VertexAnalyzer.defaultConfig
 
 
+
 from PhysicsTools.Heppy.analyzers.core.TriggerBitAnalyzer import TriggerBitAnalyzer
 
 triggerTable = {
@@ -153,6 +156,27 @@ triggerTable = {
    ],
 }
 
+
+
+###add trigger objects ####
+#from PhysicsTools.Heppy.analyzers.core.TriggerObjectsAnalyzer import TriggerObjectsAnalyzer
+from BBAnalysis.BBHeppy.TriggerObjectsAnalyzer import TriggerObjectsAnalyzer
+#from VHbbAnalysis.Heppy.TriggerObjectsList import *
+from BBAnalysis.BBHeppy.TriggerObjectsList import *
+TriggerObjectsAna = TriggerObjectsAnalyzer.defaultConfig
+TriggerObjectsAna.triggerObjectsCfgs = triggerObjectCollections
+
+for collectionName in triggerObjectCollectionsFull.keys():
+    treeProducer.collections["trgObjects_"+collectionName] = NTupleCollection("trgObjects_"+collectionName, triggerObjectsType, 5, help="")
+
+for collectionName in triggerObjectCollectionsOnlyPt.keys():
+    treeProducer.collections["trgObjects_"+collectionName] = NTupleCollection("trgObjects_"+collectionName, triggerObjectsOnlyPtType, 5, help="")
+
+for collectionName in triggerObjectCollectionsOnlySize.keys():
+    treeProducer.collections["trgObjects_"+collectionName] = NTupleCollection("trgObjects_"+collectionName, triggerObjectsNothingType , 5, help="")
+#    treeProducer.globalVariables.append(NTupleVariable("trgObjects_"+collectionName+"_size", lambda ev : len(getattr(ev,"trgObjects_"+collectionName,[])), int, help="trigger objects size"))
+
+###
 TrigAna = cfg.Analyzer(
    verbose = False,
    unrollbits=True,
@@ -160,7 +184,9 @@ TrigAna = cfg.Analyzer(
    triggerBits = triggerTable,  #default is MC, use the triggerTableData in -data.py files
   )
 
-sequence = [TrigAna, VertexAna,ttHSVAna,ttHHFAna,BBAna,treeProducer]
+#TriggerObjectsAna.triggerObjectInputTag = ('selectedPatTrigger','','RECO') # to add only if isMC=False
+
+sequence = [ TriggerObjectsAna, TrigAna, VertexAna,ttHSVAna,ttHHFAna,BBAna,treeProducer]
 
 #use tfile service to provide a single TFile to all modules where they
 #can write any root object. If the name is 'outputfile' or the one specified in treeProducer
@@ -175,17 +201,20 @@ output_service = cfg.Service(
     )
 
 sample = cfg.Component(
-    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/JetHT.root'],
+#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/JetHT.root'],
 #    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias.root','/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias3.root'],
 #    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias1.root','/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias2.root','/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias3.root','/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias4.root'],
 #    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias.root'],
 #    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-1800to2400.root'],
-#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-120to170.root'],
+    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-120to170.root'],
 #    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-300to470.root'],
+#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/JetHT_data.root'],
+#    files = ['root://cms-xrd-global.cern.ch//store/data/Run2015D/JetHT/MINIAOD/16Dec2015-v1/00000/301A497D-70B0-E511-9630-002590D0AFA8.root'],
     name="SingleSample", isEmbed=False
     )
 
-sample.isMC=False
+#sample.isMC=False
+sample.isMC=True
 
 # the following is declared in case this cfg is used in input to the heppy.py script
 from PhysicsTools.HeppyCore.framework.eventsfwlite import Events
@@ -202,6 +231,6 @@ config.preprocessor=preprocessor
 # and the following runs the process directly if running as with python filename.py  
 if __name__ == '__main__':
     from PhysicsTools.HeppyCore.framework.looper import Looper 
-    looper = Looper( 'Loop', config, nPrint = 5,nEvents=50000) 
+    looper = Looper( 'Loop', config, nPrint = 5,nEvents=1000) 
     looper.loop()
     looper.write()

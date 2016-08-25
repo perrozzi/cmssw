@@ -123,6 +123,7 @@ svType = NTupleObjectType("sv", baseObjectTypes = [ fourVectorType ], variables 
     NTupleVariable("PtRel",   lambda x : x.PtRel, help="PtRel between momentum and flight direction"),
     NTupleVariable("ntracks", lambda x : x.numberOfDaughters(), int, help="Number of tracks (with weight > 0.5)"),
     NTupleVariable("isMerged", lambda x : x.ism, help="number of times this vertex merged"),
+    NTupleVariable("isBSelected", lambda x : x.isBSelected, help="boolean true if it is one of the two ivf selected as B"),
     NTupleVariable("chi2", lambda x : x.vertexChi2(), help="Chi2 of the vertex fit"),
     NTupleVariable("ndof", lambda x : x.vertexNdof(), help="Degrees of freedom of the fit, ndof = (2*ntracks - 3)" ),
     NTupleVariable("dxy",  lambda x : x.dxy.value(), help="Transverse distance from the PV [cm]"),
@@ -148,6 +149,19 @@ svType = NTupleObjectType("sv", baseObjectTypes = [ fourVectorType ], variables 
     NTupleVariable("secD3dTracks", lambda x : x.secD3dTracks, help="second highest |ip3D| of vertex tracks"),
 
 ])
+
+
+
+triggerObjectsType = NTupleObjectType("triggerObjects",  baseObjectTypes = [ fourVectorType ], variables = [
+])
+
+triggerObjectsOnlyPtType = NTupleObjectType("triggerObjects",  baseObjectTypes = [ ], variables = [
+    NTupleVariable("pt", lambda x : x.pt(), float, mcOnly=False, help="trigger object pt"),
+])
+
+triggerObjectsNothingType = NTupleObjectType("triggerObjects",  baseObjectTypes = [ ], variables = [
+])
+
 
 
 #JetsType = NTupleObjectType("Jets",  baseObjectTypes = [ fourVectorType ], variables = [

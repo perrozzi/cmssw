@@ -1,5 +1,8 @@
 from PhysicsTools.Heppy.analyzers.core.Analyzer import Analyzer
 from PhysicsTools.Heppy.analyzers.core.AutoHandle import AutoHandle
+from PhysicsTools.Heppy.analyzers.core.AutoFillTreeProducer  import NTupleVariable
+from PhysicsTools.HeppyCore.utils.deltar import matchObjectCollection, matchObjectCollection3
+import PhysicsTools.HeppyCore.framework.config as cfg
 from PhysicsTools.HeppyCore.utils.deltar import deltaR,deltaPhi
 from BBAnalysis.BBHeppy.signedSip import SignedImpactParameterComputer
 from copy import deepcopy
@@ -27,6 +30,12 @@ class BBHeppy( Analyzer ):
         self.handles['PV'] =  AutoHandle( 'offlineSlimmedPrimaryVertices','std::vector<reco::Vertex>' )
         self.mchandles['pileUp_source'] =  AutoHandle( 'slimmedAddPileupInfo','vector<PileupSummaryInfo>' )
         self.mchandles['generator_source'] =  AutoHandle( 'generator','GenEventInfoProduct' )
+
+#        triggerObjectsCfgs = getattr(self.cfg_ana,"triggerObjectsCfgs",[])
+#        self.triggerObjectInputTag = getattr(self.cfg_ana,"triggerObjectInputTag",("","",""))
+#        self.handles['TriggerBits']     = AutoHandle( self.triggerBitsInputTag, 'edm::TriggerResults' )
+#        self.handles['TriggerObjects']  = AutoHandle( self.triggerObjectInputTag, 'std::vector<pat::TriggerObjectStandAlone>' )
+
     def beginLoop(self,setup):
         super(BBHeppy,self).beginLoop(setup)
         if "outputfile" in setup.services :
@@ -68,6 +77,17 @@ class BBHeppy( Analyzer ):
          clusterizer = ROOT.heppy.BBClusterizer(lorentzVectorForFJ,b1.p4(),b2.p4(),0,0.4);
          outJets=clusterizer.getBJets()
          return outJets
+
+    def clusterizeGenParticles4B(self,event,b1,b2,b3,b4) :
+         packedGens=list(self.mchandles['packedGen'].product())
+         goodCands=self.notDaughtersOf([b1,b2,b3,b4],packedGens)
+         lorentzVectorForFJ=ROOT.std.vector(ROOT.reco.Particle.LorentzVector)()
+         map(lambda x:lorentzVectorForFJ.push_back(x.p4()), goodCands)
+         clusterizer = ROOT.heppy.BBClusterizer(lorentzVectorForFJ,b1.p4(),b2.p4(),b3.p4(),b4.p4(),0,0.4);
+#         clusterizer = ROOT.heppy.BBClusterizer(lorentzVectorForFJ,b1.p4(),b2.p4(),0,0.4);
+         outJets=clusterizer.getBJets4B()
+         return outJets
+
 
     def clusterize(self,event,b1,b2,alldaughters) :
          pfCands=list(self.handles['cands'].product())
@@ -114,12 +134,48 @@ class BBHeppy( Analyzer ):
         if len(newSV) == 2 :
             if newSV[0].p4().M() > 2. and newSV[0].p4().M() + newSV[1].p4().M() < 9. :
                 return newSV
-        if len(selectedSVs) == 2 :
+        elif len(selectedSVs) == 2 :
             if selectedSVs[0].p4().M() > 2. and selectedSVs[0].p4().M() + selectedSVs[1].p4().M() < 9. :
                 if selectedSVs[0].numberOfDaughters()> 2 or selectedSVs[1].numberOfDaughters()> 2 :
                     return selectedSVs
         return []
 
+    def generatedFromTheSameGluonSplitting(self, BHadrons, svs) :
+        BHadronIdx1 = 0
+        svsIdx = 0
+        minDeltaRdistance = 100
+        for n in range(0, len(BHadrons)) :
+          for m in range(0, len(svs)) :
+            distanceInR = deltaR(BHadrons[n].p4(), svs[m].p4())
+            if distanceInR < minDeltaRdistance :
+                BHadronIdx1 = n
+                svsIdx = m
+                minDeltaRdistance = distanceInR
+
+
+        b1 = BHadrons[BHadronIdx1].firstb
+        BHadronIdx2 = 0
+        minDeltaRdistance = 100
+        for n in range(0, len(BHadrons)) :
+            if n != BHadronIdx1 :
+                for m in range(0, len(svs)) :
+                    if m != svsIdx :
+                        distanceInR = deltaR(BHadrons[n].p4(), svs[m].p4())
+                        if distanceInR < minDeltaRdistance :
+                            BHadronIdx2 = n
+                            minDeltaRdistance = distanceInR
+
+        b2 = BHadrons[BHadronIdx2].firstb
+        mom1 = b1.motherRefVector()[0] 
+        mom2 = b2.motherRefVector()[0] 
+        if mom1 == None or mom1.isNull() or not mom1.isAvailable(): 
+            print "ERROR1"
+        if mom2 == None or mom2.isNull() or not mom2.isAvailable(): 
+            print "ERROR2"
+        if mom1 == mom2 :
+            return True
+        else :
+            return False
 
 
     def numberOfSharedTracks(self,event,svs1,svs2) :
@@ -204,6 +260,7 @@ class BBHeppy( Analyzer ):
 
 
     def process(self, event):
+
 	#print "Event number",event.iEv
         self.readCollections( event.input )
         if self.cfg_comp.isMC and False: #AR: disable for now
@@ -220,6 +277,8 @@ class BBHeppy( Analyzer ):
 
 #        event.SVs=list(self.handles['SV'].product())
         event.PV=self.handles['PV'].product()[0]
+#        allTriggerObjects = self.handles['TriggerObjects'].product()
+#        triggerBits = self.handles['TriggerBits'].product()
 
 #       keep the event only if PV is the vertex with bigger pt_hat
         if self.cfg_comp.isMC :
@@ -241,6 +300,7 @@ class BBHeppy( Analyzer ):
             self.inputCounter.Fill(1)
 
 
+        event.isSignal = False
         event.mergeablePairs = [] 
         event.bbPairSystem = [] 
         event.genBbPairSystem = [] 
@@ -268,6 +328,7 @@ class BBHeppy( Analyzer ):
 
 
         for sv in event.ivf :
+            sv.isBSelected = False
             sv.direction=(sv.vertex()-event.PV.position())
             sv.CMSCoordinates = sv.vertex()
             SVDirection = ROOT.TVector3(sv.direction.x(), sv.direction.y(), sv.direction.z())
@@ -301,6 +362,8 @@ class BBHeppy( Analyzer ):
                 thisPair.mcDeltaR=deltaR(svs[0].mcHadron.p4(),svs[1].mcHadron.p4()) if svs[0].mcHadron is not None and  svs[1].mcHadron is not None else -1
               thisPair.B0=event.ivf.index(svs[0])
               thisPair.B1=event.ivf.index(svs[1])
+              event.ivf[event.ivf.index(svs[0])].isBSelected = True
+              event.ivf[event.ivf.index(svs[1])].isBSelected = True
               thisPair.deltaR=deltaR(svs[0].direction,svs[1].direction)
               thisPair.deltaRpp=deltaR(svs[0].p4(),svs[1].p4())
               event.bjets=self.clusterize(event,svs[0].p4(),svs[1].p4(),daughters) 
@@ -331,8 +394,10 @@ class BBHeppy( Analyzer ):
               if thisPair.SIPsOfTheShareds[0] < 4 :
                 event.bbPairSystem.append(thisPair)
 
+
         if self.cfg_comp.isMC :
           if len(event.genBHadrons) == 2 :
+              event.isSignal = True
               event.genBjets=self.clusterizeGenParticles(event,event.genBHadrons[0],event.genBHadrons[1])
               thisGenPair=event.genBjets[0]+event.genBjets[1]
 #              thisGenPair.numberOfSVinThisEvent=len(event.selectedSVs)
@@ -340,7 +405,7 @@ class BBHeppy( Analyzer ):
               thisGenPair.deltaRHad=deltaR(event.genBHadrons[0],event.genBHadrons[1])
               thisGenPair.deltaRJet=deltaR(event.genBjets[0],event.genBjets[1])
               thisGenPair.deltaRLastb =deltaR(event.genBHadrons[0].lastb,event.genBHadrons[1].lastb)
-              thisGenPair.deltaRFirstb =deltaR(event.genBHadrons[0].firstb,event.genBHadrons[1].firstb)
+              thisGenPair.deltaRFirstb =deltaR(event.genBHadrons[0].firstb.p4(),event.genBHadrons[1].firstb.p4())
               thisGenPair.hadronPair=event.genBHadrons[0].p4()+event.genBHadrons[1].p4()
               if infBMatch[0]==0 :
                 thisGenPair.deltaRForMatching0 = infBMatch[4]
@@ -350,6 +415,27 @@ class BBHeppy( Analyzer ):
                 thisGenPair.deltaRForMatching1 = infBMatch[4]
               event.genBbPairSystem.append(thisGenPair)
 
+          elif len(event.genBPair) == 2 and len(event.genBHadrons) == 4:
+            if len(event.selectedSVsSelected) == 2  :
+                if self.generatedFromTheSameGluonSplitting(event.genBHadrons, event.selectedSVsSelected) :
+                    event.isSignal = True
+                event.genBjets=self.clusterizeGenParticles4B(event,event.genBPair[0][0],event.genBPair[0][1],event.genBPair[1][0],event.genBPair[1][1])
+                for i in range(0, len(event.genBPair)) :
+#                    i = 0
+                    thisGenPair=event.genBjets[2*i]+event.genBjets[1+2*i]
+                    thisGenPair.deltaRHad=deltaR(event.genBPair[i][0],event.genBPair[i][1])
+                    thisGenPair.deltaRJet=deltaR(event.genBjets[2*i],event.genBjets[1+2*i])
+                    thisGenPair.deltaRLastb =deltaR(event.genBPair[i][0].lastb,event.genBPair[i][1].lastb)
+                    thisGenPair.deltaRFirstb =deltaR(event.genBPair[i][0].firstb.p4(),event.genBPair[i][1].firstb.p4())
+                    thisGenPair.hadronPair=event.genBPair[i][0].p4()+event.genBPair[i][1].p4()
+                    thisGenPair.deltaRForMatching0 = 20
+                    thisGenPair.deltaRForMatching1 = 20
+                    event.genBbPairSystem.append(thisGenPair)
+
+
         return True
+
+
+
 
 

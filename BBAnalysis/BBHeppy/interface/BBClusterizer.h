@@ -26,8 +26,13 @@ class BBClusterizer {
 		   const LorentzVector &,const LorentzVector &,
                    double ktpower, double rparam);
 
+  BBClusterizer(const std::vector<LorentzVector> & ,
+		   const LorentzVector &,const LorentzVector &, const LorentzVector &,const LorentzVector &,
+                   double ktpower, double rparam);
+
   /// get grouping (inclusive jets)
   std::vector<LorentzVector> getBJets();
+  std::vector<LorentzVector> getBJets4B();
   std::vector<LorentzVector> GetLeadingJets();
 
  private:
@@ -35,7 +40,10 @@ class BBClusterizer {
   std::vector<LorentzVector> makeP4s(const std::vector<fastjet::PseudoJet> &jets) ;
 
   // look if there is the SV in the jet
-  bool SVIsInTheJet(const fastjet::PseudoJet & pj);
+  int SVIsInTheJet(const fastjet::PseudoJet & pj);
+
+  // divide the jet in 2
+  std::vector<fastjet::PseudoJet>  DivideTheJet(const fastjet::PseudoJet & pj);
 
   // used to handle the inputs
   std::vector<fastjet::PseudoJet> fjInputs;        // fastjet inputs
