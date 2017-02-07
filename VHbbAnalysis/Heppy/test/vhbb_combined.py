@@ -6,7 +6,7 @@ from PhysicsTools.Heppy.utils.cmsswPreprocessor import CmsswPreprocessor
 # line will have no effect (as vhbb is already imported there)
 from vhbb import *
 
-# from VHbbAnalysis.Heppy.AdditionalBTag import AdditionalBTag
+from VHbbAnalysis.Heppy.AdditionalBTag import AdditionalBTag
 from VHbbAnalysis.Heppy.AdditionalBoost import AdditionalBoost
 from VHbbAnalysis.Heppy.GenHFHadronMatcher import GenHFHadronMatcher
 
@@ -82,11 +82,11 @@ if not AdditionalBoost.skip_ca15:
 
 # # Add b-Tagging Information
 # 
-# btagana=cfg.Analyzer(
-#     verbose=False,
-#     class_object=AdditionalBTag,
-# )
-# sequence.insert(sequence.index(VHbb),btagana)
+btagana=cfg.Analyzer(
+    verbose=False,
+    class_object=AdditionalBTag,
+)
+sequence.insert(sequence.index(VHbb),btagana)
 
 # Add Information on generator level hadronic tau decays
 if sample.isMC:   

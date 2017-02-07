@@ -73,13 +73,13 @@ tauTypeVHbb = NTupleObjectType("tauTypeVHbb", baseObjectTypes = [ tauType ], var
 jetTypeVHbb = NTupleObjectType("jet",  baseObjectTypes = [ jetType ], variables = [
     NTupleVariable("idxFirstTauMatch", lambda x : x.tauIdxs[0] if len(getattr(x, "tauIdxs", [])) > 0 else -1, int,help='index of the first matching tau'),
     NTupleVariable("hadronFlavour", lambda x : x.mcFlavour, int,     mcOnly=True, help="match to heavy hadrons"),
-    NTupleVariable("btagBDT", lambda x : getattr(x,"btagBDT",-99), help="btag"),
-    NTupleVariable("btagProb", lambda x : x.btag('jetProbabilityBJetTags') , help="btag"),
-    NTupleVariable("btagBProb", lambda x : x.btag('jetBProbabilityBJetTags') , help="btag"),
-    NTupleVariable("btagSoftEl", lambda x : x.btag('softPFElectronBJetTags') , help="soft electron b-tag"),
-    NTupleVariable("btagSoftMu", lambda x : x.btag('softPFMuonBJetTags') , help="soft muon b-tag"),
+    NTupleVariable("btagBDT", lambda x : getattr(x,"btagBDT",-99), help="combined super-btag"),
+    NTupleVariable("btagProb", lambda x : x.btag('pfJetProbabilityBJetTags') , help="jet probability b-tag"),
+    NTupleVariable("btagBProb", lambda x : x.btag('pfJetBProbabilityBJetTags') , help="jet b-probability b-tag"),
+    NTupleVariable("btagSoftEl", lambda x : getattr(x, "btagSoftEl", -1000) , help="soft electron b-tag"),
+    NTupleVariable("btagSoftMu", lambda x : getattr(x, "btagSoftMu", -1000) , help="soft muon b-tag"),
     NTupleVariable("btagnew",   lambda x : getattr(x,"btagnew",-2), help="newest btag discriminator"),
-    NTupleVariable("btagCSVV0",   lambda x : getattr(x,"btagcsv",-2), help="should be the old CSV discriminator"),
+    NTupleVariable("btagCSVV0",   lambda x : x.bDiscriminator('pfCombinedSecondaryVertexV2BJetTags'), help="should be the old CSV discriminator with AVR vertices"),
    # NTupleVariable("mcMatchId",    lambda x : x.mcMatchId,   int, mcOnly=True, help="Match to source from hard scatter (25 for H, 6 for t, 23/24 for W/Z)"),
    # NTupleVariable("puId", lambda x : x.puJetIdPassed, int,     mcOnly=False, help="puId (full MVA, loose WP, 5.3.X training on AK5PFchs: the only thing that is available now)"),
    # NTupleVariable("id",    lambda x : x.jetID("POG_PFID") , int, mcOnly=False,help="POG Loose jet ID"),
@@ -113,13 +113,16 @@ jetTypeVHbb = NTupleObjectType("jet",  baseObjectTypes = [ jetType ], variables 
 #    NTupleVariable("mult",   lambda x : getattr(x.computeQGvars(),'mult', 0) , int, mcOnly=False,help="QG input variable: total multiplicity"),
 
 # this only read qgl if it was explicitelly computed in the code
-    NTupleVariable("qgl",   lambda x : getattr(x,'qgl_value',0) , float, mcOnly=False,help="QG Likelihood"),
-    NTupleVariable("ptd",   lambda x : getattr(x,'ptd', 0), float, mcOnly=False,help="QG input variable: ptD"),
-    NTupleVariable("axis2",   lambda x : getattr(x,'axis2', 0) , float, mcOnly=False,help="QG input variable: axis2"),
-    NTupleVariable("mult",   lambda x : getattr(x,'mult', 0) , int, mcOnly=False,help="QG input variable: total multiplicity"),
+    NTupleVariable("qgl",   lambda x : getattr(x,'qgl_value',-20) , float, mcOnly=False,help="QG Likelihood"),
+    NTupleVariable("ptd",   lambda x : getattr(x,'ptd', -20), float, mcOnly=False,help="QG input variable: ptD"),
+    NTupleVariable("axis2",   lambda x : getattr(x,'axis2', -20) , float, mcOnly=False,help="QG input variable: axis2"),
+    NTupleVariable("mult",   lambda x : getattr(x,'mult', -20) , int, mcOnly=False,help="QG input variable: total multiplicity"),
     NTupleVariable("numberOfDaughters",   lambda x : x.numberOfDaughters(), int, mcOnly=False,help="number of daughters"),
-    NTupleVariable("btagIdx",   lambda x : x.btagIdx, int, mcOnly=False,help="ranking in btag "),
+    NTupleVariable("btagIdx",   lambda x : x.btagIdx, int, mcOnly=False,help="ranking in btag"),
+    NTupleVariable("mcIdx",   lambda x : x.mcJet.index if hasattr(x,"mcJet") and x.mcJet is not None else -1, int, mcOnly=False,help="index of the matching gen jet"),
     NTupleVariable("pt_reg",lambda x : getattr(x,"pt_reg",-99), help="Regression"),
+    NTupleVariable("pt_regVBF",lambda x : getattr(x,"pt_regVBF",-99), help="Regression for VBF"),
+    NTupleVariable("blike_VBF",lambda x : getattr(x,"blike_VBF",-2), help="VBF blikelihood for SingleBtag dataset")
  ])
 
 
@@ -335,16 +338,16 @@ genTauJetType = NTupleObjectType("genTauJet", baseObjectTypes = [ genParticleTyp
 ])
 
 genJetType = NTupleObjectType("genJet", baseObjectTypes = [ genParticleType ], variables = [
-    NTupleVariable("numBHadrons", lambda x : x.numBHadronsBeforeTop, int, mcOnly=True, help="number of matched b hadrons before top quark decay"),
-    NTupleVariable("numCHadrons", lambda x : x.numCHadronsBeforeTop, int, mcOnly=True, help="number of matched c hadrons before top quark decay"),
-    NTupleVariable("numBHadronsFromTop", lambda x : x.numBHadronsFromTop, int, mcOnly=True, help="number of matched b hadrons from top quark decay"),
-    NTupleVariable("numCHadronsFromTop", lambda x : x.numCHadronsFromTop, int, mcOnly=True, help="number of matched c hadrons from top quark decay"),
-    NTupleVariable("numBHadronsAfterTop", lambda x : x.numBHadronsAfterTop, int, mcOnly=True, help="number of matched b hadrons after top quark decay"),
-    NTupleVariable("numCHadronsAfterTop", lambda x : x.numCHadronsAfterTop, int, mcOnly=True, help="number of matched c hadrons after top quark decay"),
+    NTupleVariable("numBHadrons", lambda x : getattr(x,"numBHadronsBeforeTop",-1), int, mcOnly=True, help="number of matched b hadrons before top quark decay"),
+    NTupleVariable("numCHadrons", lambda x : getattr(x,"numCHadronsBeforeTop",-1), int, mcOnly=True, help="number of matched c hadrons before top quark decay"),
+    NTupleVariable("numBHadronsFromTop", lambda x : getattr(x,"numBHadronsFromTop",-1), int, mcOnly=True, help="number of matched b hadrons from top quark decay"),
+    NTupleVariable("numCHadronsFromTop", lambda x : getattr(x,"numCHadronsFromTop",-1), int, mcOnly=True, help="number of matched c hadrons from top quark decay"),
+    NTupleVariable("numBHadronsAfterTop", lambda x : getattr(x,"numBHadronsAfterTop",-1), int, mcOnly=True, help="number of matched b hadrons after top quark decay"),
+    NTupleVariable("numCHadronsAfterTop", lambda x : getattr(x,"numCHadronsAfterTop",-1), int, mcOnly=True, help="number of matched c hadrons after top quark decay"),
     NTupleVariable("wNuPt", lambda x : (x.p4()+x.nu).pt() if hasattr(x,"nu") else x.p4().pt() ,float, mcOnly=True, help="pt of jet adding back the neutrinos"),
     NTupleVariable("wNuEta", lambda x : (x.p4()+x.nu).eta() if hasattr(x,"nu") else x.p4().eta() ,float, mcOnly=True, help="eta of jet adding back the neutrinos"),
     NTupleVariable("wNuPhi", lambda x : (x.p4()+x.nu).phi() if hasattr(x,"nu") else x.p4().phi() ,float, mcOnly=True, help="phi of jet adding back the neutrinos"),
-    NTupleVariable("wNuM", lambda x : (x.p4()+x.nu).M() if hasattr(x,"nu") else x.p4().phi() ,float, mcOnly=True, help="mass of jet adding back the neutrinos"),
+    NTupleVariable("wNuM", lambda x : (x.p4()+x.nu).M() if hasattr(x,"nu") else x.p4().M() ,float, mcOnly=True, help="mass of jet adding back the neutrinos"),
 
 ])
 
