@@ -26,8 +26,8 @@ config.Data.inputDBS = 'global'
 config.Data.splitting = 'FileBased'
 config.Data.unitsPerJob = 5
 config.Data.totalUnits = -1
-config.Data.outLFNDirBase = '/store/user/gimandor/BBHeppy'+version+'/'
-config.Data.publication = True
+config.Data.outLFNDirBase = '/store/user/berger_p2/gbb/ntuples/BBHeppy'+version+'/'
+config.Data.publication = False #True
 config.Data.outputDatasetTag = 'BBHeppy_'+version
 config.Data.allowNonValidInputDataset = True
 

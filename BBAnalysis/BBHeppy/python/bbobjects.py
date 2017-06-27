@@ -92,8 +92,8 @@ primaryVertexType = NTupleObjectType("primaryVertex", variables = [
 
 svType = NTupleObjectType("sv", baseObjectTypes = [ fourVectorType ], variables = [
     NTupleVariable("charge",   lambda x : x.charge(), int),
-    NTupleVariable("dirEta",   lambda x : x.direction.eta()),
-    NTupleVariable("dirPhi",   lambda x : x.direction.phi()),
+#    NTupleVariable("dirEta",   lambda x : x.direction.eta()),
+#    NTupleVariable("dirPhi",   lambda x : x.direction.phi()),
     NTupleVariable("ntracks", lambda x : x.numberOfDaughters(), int, help="Number of tracks (with weight > 0.5)"),
     NTupleVariable("chi2", lambda x : x.vertexChi2(), help="Chi2 of the vertex fit"),
     NTupleVariable("ndof", lambda x : x.vertexNdof(), help="Degrees of freedom of the fit, ndof = (2*ntracks - 3)" ),

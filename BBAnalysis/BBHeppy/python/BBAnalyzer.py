@@ -183,57 +183,74 @@ class BBHeppy( Analyzer ):
 #            sv.directionUnit=sv.direction/sv.direction.mag()
         event.selectedSVs = [sv for sv in event.ivf if sv.p4().M() > 1.5 and sv.p4().M() <6.5 and sv.numberOfDaughters()>2 and abs(sv.direction.eta()) < 2 and sv.p4().pt() > 8.
           and sv.direction.perp2() < 4. and sv.dxy.significance() > 3 and sv.d3d.significance() > 5  and sv.cosTheta > 0.95 ] 
-#        print len(event.selectedSVs)       , len(event.ivf) 
-        if len(event.selectedSVs) != 2 and len(event.genBHadrons) < 2 :
-          return False
-        infBMatch = self.infForMatching(event, event.genBHadrons)
-        infDMatch = self.infForMatching(event, event.genDHadrons)
+
+        #print len(event.selectedSVs)       , len(event.ivf) 
+        
+        if self.cfg_comp.isMC:
+            if len(event.selectedSVs) != 2 and len(event.genBHadrons) < 2 :
+              return False
+            infBMatch = self.infForMatching(event, event.genBHadrons)
+            infDMatch = self.infForMatching(event, event.genDHadrons)
+
         if len(event.selectedSVs) == 2  :
               svs=event.selectedSVs
               daughters = Set()
               map(daughters.add,svs[0].daughterPtrVector())
               map(daughters.add,svs[1].daughterPtrVector())
               thisPair=sum([x.p4() for x in daughters], ROOT.reco.Particle.LorentzVector(0.,0.,0.,0.))
-              thisPair.numberOfBinThisEvent=len(event.genBHadrons)
+              if self.cfg_comp.isMC: 
+                  thisPair.numberOfBinThisEvent=len(event.genBHadrons)
+              else:
+                  thisPair.numberOfBinThisEvent = -1
+
               thisPair.B0=event.ivf.index(svs[0])
               thisPair.B1=event.ivf.index(svs[1])
               thisPair.deltaR=deltaR(svs[0].direction,svs[1].direction)
               thisPair.deltaRpp=deltaR(svs[0].p4(),svs[1].p4())
-              thisPair.mcDeltaR=deltaR(svs[0].mcHadron.p4(),svs[1].mcHadron.p4()) if svs[0].mcHadron is not None and  svs[1].mcHadron is not None else -1
+              if self.cfg_comp.isMC: 
+                  thisPair.mcDeltaR=deltaR(svs[0].mcHadron.p4(),svs[1].mcHadron.p4()) if svs[0].mcHadron is not None and  svs[1].mcHadron is not None else -1
+              else:
+                  thisPair.mcDeltaR=-1
               event.bjets=self.clusterize(event,svs[0].p4(),svs[1].p4(),daughters) 
               thisPair.deltaRjet=deltaR(event.bjets[0],event.bjets[1])
               thisPair.numberOfSharedTracks=self.numberOfSharedTracks(event,svs[0],svs[1])
 #              thisPair.mcMatchFraction0=svs[0].mcMatchFraction
 #              thisPair.mcMatchFraction1=svs[1].mcMatchFraction
-              if infBMatch[1]==0 :
-                thisPair.deltaRForBMatch0 = infBMatch[4]
-                thisPair.deltaRForBMatch1 = infBMatch[5]
-              else :
-                thisPair.deltaRForBMatch0 = infBMatch[5]
-                thisPair.deltaRForBMatch1 = infBMatch[4]
-              if infDMatch[1]==0 :
-                thisPair.deltaRForDMatch0 = infDMatch[4]
-                thisPair.deltaRForDMatch1 = infDMatch[5]
-              else :
-                thisPair.deltaRForDMatch0 = infDMatch[5]
-                thisPair.deltaRForDMatch1 = infDMatch[4]
+              if self.cfg_comp.isMC:
+                  if infBMatch[1]==0 :
+                    thisPair.deltaRForBMatch0 = infBMatch[4]
+                    thisPair.deltaRForBMatch1 = infBMatch[5]
+                  else :
+                    thisPair.deltaRForBMatch0 = infBMatch[5]
+                    thisPair.deltaRForBMatch1 = infBMatch[4]
+                  if infDMatch[1]==0 :
+                    thisPair.deltaRForDMatch0 = infDMatch[4]
+                    thisPair.deltaRForDMatch1 = infDMatch[5]
+                  else :
+                    thisPair.deltaRForDMatch0 = infDMatch[5]
+                    thisPair.deltaRForDMatch1 = infDMatch[4]
+              else:
+                    thisPair.deltaRForBMatch0 = -1
+                    thisPair.deltaRForBMatch1 = -1
+                    thisPair.deltaRForDMatch0 = -1
+                    thisPair.deltaRForDMatch1 = -1
               event.bbPairSystem.append(thisPair)
-
-        if len(event.genBHadrons) == 2 :
-              event.genBjets=self.clusterizeGenParticles(event,event.genBHadrons[0],event.genBHadrons[1])
-              thisGenPair=event.genBjets[0]+event.genBjets[1]
-              thisGenPair.numberOfSVinThisEvent=len(event.selectedSVs)
-              thisGenPair.deltaRHad=deltaR(event.genBHadrons[0],event.genBHadrons[1])
-              thisGenPair.deltaRJet=deltaR(event.genBjets[0],event.genBjets[1])
-              thisGenPair.hadronPair=event.genBHadrons[0].p4()+event.genBHadrons[1].p4()
-              if infBMatch[0]==0 :
-                thisGenPair.deltaRForMatching0 = infBMatch[4]
-                thisGenPair.deltaRForMatching1 = infBMatch[5]
-              else :
-                thisGenPair.deltaRForMatching0 = infBMatch[5]
-                thisGenPair.deltaRForMatching1 = infBMatch[4]
-              event.genBbPairSystem.append(thisGenPair)
-
+        
+        if self.cfg_comp.isMC:
+            if len(event.genBHadrons) == 2 :
+                  event.genBjets=self.clusterizeGenParticles(event,event.genBHadrons[0],event.genBHadrons[1])
+                  thisGenPair=event.genBjets[0]+event.genBjets[1]
+                  thisGenPair.numberOfSVinThisEvent=len(event.selectedSVs)
+                  thisGenPair.deltaRHad=deltaR(event.genBHadrons[0],event.genBHadrons[1])
+                  thisGenPair.deltaRJet=deltaR(event.genBjets[0],event.genBjets[1])
+                  thisGenPair.hadronPair=event.genBHadrons[0].p4()+event.genBHadrons[1].p4()
+                  if infBMatch[0]==0 :
+                    thisGenPair.deltaRForMatching0 = infBMatch[4]
+                    thisGenPair.deltaRForMatching1 = infBMatch[5]
+                  else :
+                    thisGenPair.deltaRForMatching0 = infBMatch[5]
+                    thisGenPair.deltaRForMatching1 = infBMatch[4]
+                  event.genBbPairSystem.append(thisGenPair)
 
         return True
 
