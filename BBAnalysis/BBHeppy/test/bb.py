@@ -14,25 +14,24 @@ usePreprocessor = True
 from PhysicsTools.Heppy.analyzers.core.AutoFillTreeProducer  import * 
 from BBAnalysis.BBHeppy.bbobjects  import * 
 
-if isMC:
-    ntupleCollections = {
-            "ivf" : NTupleCollection("ivf", svType, 8, help="Selected secondary vertices from ttH guys"),
-            "genBHadrons"  : NTupleCollection("GenBHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level B hadrons"),
-            "genDHadrons"  : NTupleCollection("GenDHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level D hadrons"),
-            "mergeablePairs" : NTupleCollection("mergeablePairs", vertexPairType, 100, help=" pairs"),
-            "bbPairSystem" : NTupleCollection("bbPairSystem", bbPairType, 10, help="bb pairs"),
-            "genBbPairSystem" : NTupleCollection("genBbPairSystem", genBbPairType, 10, help="bb pairs",mcOnly=True), 
-            "bjets"       : NTupleCollection("bjets",     fourVectorType, 2, help="Jets from bb pair"),
-            "genBjets"       : NTupleCollection("genBjets",     fourVectorType, 2, mcOnly=True, help="GenJets from bb pair"),
-                        }
-else:
-    ntupleCollections = {
-            "ivf" : NTupleCollection("ivf", svType, 8, help="Selected secondary vertices from ttH guys"),
-            "mergeablePairs" : NTupleCollection("mergeablePairs", vertexPairType, 100, help=" pairs"),
-            "bbPairSystem"   : NTupleCollection("bbPairSystem", bbPairType, 10, help="bb pairs"),
-            "bjets"          : NTupleCollection("bjets",     fourVectorType, 2, help="Jets from bb pair"),
-            "jets"           : NTupleCollection('Jet', jetType, 8, help='Jets collection'),
-            }
+#    ntupleCollections = {
+#            "ivf" : NTupleCollection("ivf", svType, 8, help="Selected secondary vertices from ttH guys"),
+#            "genBHadrons"  : NTupleCollection("GenBHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level B hadrons"),
+#            "genDHadrons"  : NTupleCollection("GenDHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level D hadrons"),
+#            "mergeablePairs" : NTupleCollection("mergeablePairs", vertexPairType, 100, help=" pairs"),
+#            "bbPairSystem" : NTupleCollection("bbPairSystem", bbPairType, 10, help="bb pairs"),
+#            "genBbPairSystem" : NTupleCollection("genBbPairSystem", genBbPairType, 10, help="bb pairs",mcOnly=True), 
+#            "bjets"       : NTupleCollection("bjets",     fourVectorType, 2, help="Jets from bb pair"),
+#            "genBjets"       : NTupleCollection("genBjets",     fourVectorType, 2, mcOnly=True, help="GenJets from bb pair"),
+#                        }
+#else:
+#    ntupleCollections = {
+#            "ivf" : NTupleCollection("ivf", svType, 8, help="Selected secondary vertices from ttH guys"),
+#            "mergeablePairs" : NTupleCollection("mergeablePairs", vertexPairType, 100, help=" pairs"),
+#            "bbPairSystem"   : NTupleCollection("bbPairSystem", bbPairType, 10, help="bb pairs"),
+#            "bjets"          : NTupleCollection("bjets",     fourVectorType, 2, help="Jets from bb pair"),
+#            "jets"           : NTupleCollection('Jet', jetType, 8, help='Jets collection'),
+#            }
  
 treeProducer= cfg.Analyzer(
 	class_object=AutoFillTreeProducer, 
@@ -41,22 +40,31 @@ treeProducer= cfg.Analyzer(
         #here the list of simple event variables (floats, int) can be specified
         globalVariables = [
         #     NTupleVariable("rho",  lambda ev: ev.rho, float, help="jets rho"),
+              NTupleVariable("ptHat",  lambda ev: ev.ptHat, float, mcOnly=True, help="pt_hat of the event"),
+              NTupleVariable("maxPUptHat",  lambda ev: ev.maxPUptHat, float, mcOnly=True, help="max pt_hat of PU interacions"),
+              NTupleVariable("isSignal",  lambda ev: ev.isSignal, float, mcOnly=True, help="if bb are fram the same gluon splitting"),
         ],
         #here one can specify compound objects 
         globalObjects = {
         #  "met"    : NTupleObject("met",     metType, help="PF E_{T}^{miss}, after default type 1 corrections"),
         },
-	collections = ntupleCollections
-   	        #"ivf" : NTupleCollection("ivf", svType, 8, help="Selected secondary vertices from ttH guys"),
-            #    "genBHadrons"  : NTupleCollection("GenBHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level B hadrons"),
-            #    "genDHadrons"  : NTupleCollection("GenDHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level D hadrons"),
-            #    "mergeablePairs" : NTupleCollection("mergeablePairs", vertexPairType, 100, help=" pairs"), 
-            #    "bbPairSystem" : NTupleCollection("bbPairSystem", bbPairType, 10, help="bb pairs"), 
-            #    "genBbPairSystem" : NTupleCollection("genBbPairSystem", genBbPairType, 10, help="bb pairs",mcOnly=True), 
-	        #"bjets"       : NTupleCollection("bjets",     fourVectorType, 2, help="Jets from bb pair"),
-	        #"genBjets"       : NTupleCollection("genBjets",     fourVectorType, 2, mcOnly=True, help="GenJets from bb pair"),
-		
-            #The following would just store the electrons and muons from miniaod without any selection or cleaning
+	
+        collections = {
+   	        "ivf" : NTupleCollection("ivf", svType, 50, help="Selected secondary vertices from ttH guys"),
+                "genBHadrons"  : NTupleCollection("GenBHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level B hadrons with pt gt 15"),
+                "genAllBHadrons"  : NTupleCollection("GenAllBHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level B hadrons"),
+                "genDHadrons"  : NTupleCollection("GenDHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level D hadrons"),
+                "genBToDHadrons"  : NTupleCollection("GenDfromBHad", GenDfromBHadType, 20, mcOnly=True, help="Gen-level D hadrons from B"),
+                "genFirstb"  : NTupleCollection("genFirstb", bQuarkType, 20, mcOnly=True, help="Gen-level first b quarks"),
+                "genLastb"  : NTupleCollection("genLastb", bQuarkType, 20, mcOnly=True, help="Gen-level last b quarks"),
+                "mergeablePairs" : NTupleCollection("mergeablePairs", vertexPairType, 100, help=" pairs"), 
+                "bbPairSystem" : NTupleCollection("bbPairSystem", bbPairType, 10, help="bb pairs"), 
+                "genBbPairSystem" : NTupleCollection("genBbPairSystem", genBbPairType, 10, mcOnly=True, help="bb pairs"), 
+	        "bjets"       : NTupleCollection("bjets",     fourVectorType, 2, mcOnly=True, help="Jets from bb pair"),
+	        "genBjets"       : NTupleCollection("genBjets",     fourVectorType, 2, mcOnly=True, help="GenJets from bb pair"),
+	        "CAJets"       : NTupleCollection("CAJets",     fourVectorType, 10, help="recostructed jets"),
+	        "AK4Jets"       : NTupleCollection("AK4Jets",     fourVectorType, 10, help="recostructed jets"),
+		#The following would just store the electrons and muons from miniaod without any selection or cleaning
                 # only the basice particle information is saved
 		#"slimmedMuons" : ( AutoHandle( ("slimmedMuons",), "std::vector<pat::Muon>" ),
                 #           NTupleCollection("mu", particleType, 4, help="patMuons, directly from MINIAOD") ),
@@ -141,43 +149,64 @@ ttHSVAna =  cfg.Analyzer(
 from PhysicsTools.Heppy.analyzers.objects.VertexAnalyzer import VertexAnalyzer
 VertexAna = VertexAnalyzer.defaultConfig
 
-
-# Configure trigger bit analyzer
 from PhysicsTools.Heppy.analyzers.core.TriggerBitAnalyzer import TriggerBitAnalyzer
-if not isMC:
-    FlagsAna = TriggerBitAnalyzer.defaultEventFlagsConfig
-    TrigAna= cfg.Analyzer(
-        verbose=False,
-        class_object=TriggerBitAnalyzer,
-        #grouping several paths into a single flag
-        # v* can be used to ignore the version of a path
-        triggerBits={
-        'PFJET':["HLT_PFJet140_v*","HLT_PFJet200_v*","HLT_PFJet260_v*","HLT_PFJet320_v*","HLT_PFJet400_v*","HLT_PFJet40_v*","HLT_PFJet450_v*","HLT_PFJet500_v*","HLT_PFJet60_v*","HLT_PFJet80_v*"],
-        'ZEROBIAS':["HLT_ZeroBias_v*"]
-        },
-    #   processName='HLT',
-    #   outprefix='HLT'
-        #setting 'unrollbits' to true will not only store the OR for each set of trigger bits but also the individual bits
-        #caveat: this does not unroll the version numbers
-        unrollbits=True 
-        )
 
-from PhysicsTools.Heppy.analyzers.objects.LeptonAnalyzer import LeptonAnalyzer
-LepAna = LeptonAnalyzer.defaultConfig
-from PhysicsTools.Heppy.analyzers.objects.PhotonAnalyzer import PhotonAnalyzer
-PhoAna = PhotonAnalyzer.defaultConfig
-from PhysicsTools.Heppy.analyzers.objects.TauAnalyzer import TauAnalyzer
-TauAna = TauAnalyzer.defaultConfig
-from PhysicsTools.Heppy.analyzers.core.PileUpAnalyzer import PileUpAnalyzer
-PUAna = PileUpAnalyzer.defaultConfig
+triggerTable = {
+   "DiJetMu" : [
+       "HLT_BTagMu_DiJet20_Mu5_v*",
+       "HLT_BTagMu_DiJet40_Mu5_v*",
+       "HLT_BTagMu_DiJet70_Mu5_v*",
+       "HLT_BTagMu_DiJet110_Mu5_v*",
+   ],
+   "HT" : [
+       "HLT_PFHT200_v*",
+       "HLT_PFHT250_v*",
+       "HLT_PFHT300_v*",
+       "HLT_PFHT400_v*",
+   ],
+   "PFJet" : [
+       "HLT_ZeroBias_v*",
+       "HLT_PFJet40_v*",
+       "HLT_PFJet60_v*",
+       "HLT_PFJet80_v*",
+       "HLT_PFJet140_v*",
+       "HLT_PFJet200_v*",
+       "HLT_PFJet260_v*",
+       "HLT_PFJet320_v*",
+       "HLT_PFJet400_v*",
+       "HLT_PFJet500_v*",
+   ],
+}
 
-from PhysicsTools.Heppy.analyzers.objects.JetAnalyzer import JetAnalyzer
-JetAna = JetAnalyzer.defaultConfig
+###add trigger objects ####
+#from PhysicsTools.Heppy.analyzers.core.TriggerObjectsAnalyzer import TriggerObjectsAnalyzer
+from BBAnalysis.BBHeppy.TriggerObjectsAnalyzer import TriggerObjectsAnalyzer
+#from VHbbAnalysis.Heppy.TriggerObjectsList import *
+from BBAnalysis.BBHeppy.TriggerObjectsList import *
+TriggerObjectsAna = TriggerObjectsAnalyzer.defaultConfig
+TriggerObjectsAna.triggerObjectsCfgs = triggerObjectCollections
 
-if isMC:
-    sequence = [VertexAna,ttHSVAna,ttHHFAna,BBAna,PUAna,JetAna,treeProducer]
-else:
-    sequence = [PUAna,TrigAna,VertexAna,LepAna,PhoAna,TauAna,JetAna,ttHSVAna,ttHHFAna,BBAna,treeProducer]
+for collectionName in triggerObjectCollectionsFull.keys():
+    treeProducer.collections["trgObjects_"+collectionName] = NTupleCollection("trgObjects_"+collectionName, triggerObjectsType, 5, help="")
+
+for collectionName in triggerObjectCollectionsOnlyPt.keys():
+    treeProducer.collections["trgObjects_"+collectionName] = NTupleCollection("trgObjects_"+collectionName, triggerObjectsOnlyPtType, 5, help="")
+
+for collectionName in triggerObjectCollectionsOnlySize.keys():
+    treeProducer.collections["trgObjects_"+collectionName] = NTupleCollection("trgObjects_"+collectionName, triggerObjectsNothingType , 5, help="")
+#    treeProducer.globalVariables.append(NTupleVariable("trgObjects_"+collectionName+"_size", lambda ev : len(getattr(ev,"trgObjects_"+collectionName,[])), int, help="trigger objects size"))
+
+###
+TrigAna = cfg.Analyzer(
+   verbose = False,
+   unrollbits=True,
+   class_object = TriggerBitAnalyzer,
+   triggerBits = triggerTable,  #default is MC, use the triggerTableData in -data.py files
+  )
+
+#TriggerObjectsAna.triggerObjectInputTag = ('selectedPatTrigger','','RECO') # to add only if isMC=False
+
+sequence = [ TriggerObjectsAna, TrigAna, VertexAna,ttHSVAna,ttHHFAna,BBAna,treeProducer]
 
 #use tfile service to provide a single TFile to all modules where they
 #can write any root object. If the name is 'outputfile' or the one specified in treeProducer
@@ -193,12 +222,29 @@ output_service = cfg.Service(
 
 #xrdcp root://cms-xrd-global.cern.ch//store/data/Run2015D/JetHT/MINIAOD/16Dec2015-v1/00000/301A497D-70B0-E511-9630-002590D0AFA8.root /scratch/berger_p2/test/
 sample = cfg.Component(
+#<<<<<<< HEAD
         files = ['/scratch/berger_p2/test/301A497D-70B0-E511-9630-002590D0AFA8.root'],
     name="SingleSample", isEmbed=False
     )
 
 sample.isMC = isMC
 sample.isData = not isMC
+#=======
+#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/JetHT.root'],
+#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias.root','/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias3.root'],
+#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias1.root','/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias2.root','/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias3.root','/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias4.root'],
+#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias.root'],
+#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-1800to2400.root'],
+#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-120to170.root'],
+#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-300to470.root'],
+#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/JetHT_data.root'],
+#    files = ['root://cms-xrd-global.cern.ch//store/data/Run2015D/JetHT/MINIAOD/16Dec2015-v1/00000/301A497D-70B0-E511-9630-002590D0AFA8.root'],
+#    name="SingleSample", isEmbed=False
+#    )
+#
+##sample.isMC=False
+#sample.isMC=True
+#>>>>>>> nuovoHbb
 
 # the following is declared in case this cfg is used in input to the heppy.py script
 from PhysicsTools.HeppyCore.framework.eventsfwlite import Events
@@ -215,6 +261,6 @@ if usePreprocessor:
 # and the following runs the process directly if running as with python filename.py  
 if __name__ == '__main__':
     from PhysicsTools.HeppyCore.framework.looper import Looper 
-    looper = Looper( 'Loop', config, nPrint = 5,nEvents=3000) 
+    looper = Looper( 'Loop', config, nPrint = 5,nEvents=1000) 
     looper.loop()
     looper.write()

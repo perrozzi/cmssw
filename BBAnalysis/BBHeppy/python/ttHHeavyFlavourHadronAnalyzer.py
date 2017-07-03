@@ -1,6 +1,7 @@
 from PhysicsTools.Heppy.analyzers.core.AutoHandle import AutoHandle
 from PhysicsTools.Heppy.analyzers.core.Analyzer import Analyzer
 from BBAnalysis.BBHeppy.ttHSVAnalyzer import matchToGenHadron
+from PhysicsTools.HeppyCore.utils.deltar import deltaR
 
 class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
     def __init__(self, cfg_ana, cfg_comp, looperName ):
@@ -12,6 +13,152 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
 
     def beginLoop(self, setup):
         super(ttHHeavyFlavourHadronAnalyzer,self).beginLoop(setup)
+
+    def makeBToDHadrons(self, B, D, event) :
+        Dp4 = D.p4()
+        Dp4.BDecayPoint = None
+        Dp4.DDecayPoint = None
+        if B.numberOfDaughters() > 0 :
+            Dp4.BDecayPoint = B.daughter(0).vertex()
+        if D.numberOfDaughters() > 0 :
+            Dp4.DDecayPoint = D.daughter(0).vertex()
+        event.genBToDHadrons.append(Dp4)
+
+
+    def funcionToCheck(self, event) :
+        for particle in event.genParticles :
+            if abs(particle.pdgId()) != 5 :
+                bDaughterNumber = 0
+                for dau in particle.daughterRefVector() :
+                    if abs(particle.pdgId()) == 5 :
+                        bDaughterNumber = bDaughterNumber + 1
+
+                if bDaughterNumber != 0 and bDaughterNumber != 2 :
+                    print "particella con non due b"
+                    for dau in particle.daughterRefVector() :
+                        print particle.pdgId(), "  \t"
+
+
+
+    def makeFirstAndLastb(self, event) :
+
+        self.funcionToCheck(event)
+
+        print "Event -------------------------------------------------------------------------------"
+        for n in range(0,len(event.genBHadrons)):
+            event.genBHadrons[n].bIndex = n
+            chainIt_beforSearchForMother = None
+            chainIt = event.genBHadrons[n]
+            while chainIt != chainIt_beforSearchForMother :
+                chainIt_beforSearchForMother = chainIt
+                for mom in chainIt.motherRefVector() :
+                    if max((abs(mom.pdgId())/1000) % 10, (abs(mom.pdgId())/100) % 10) == 5 :
+                        chainIt = mom
+
+            BFromHadronization = True
+            for mom in chainIt.motherRefVector() :
+                if mom == None or mom.isNull() or not mom.isAvailable(): 
+                    print "ERROR: mother of B not available"
+                else :
+                    if abs(mom.get().pdgId()) == 5 : #and abs(mom.eta()) < 15000 :
+                        chainIt = mom
+                        BFromHadronization = False
+            if BFromHadronization :
+                print "ERROR: B is not from b hadronization"
+            if chainIt == chainIt_beforSearchForMother :
+                print "ERROR: B has not b mother"
+
+            lastb = chainIt
+
+            BDaughterNumber = 0
+            for dau in lastb.daughterRefVector() :
+                if max((abs(dau.pdgId())/1000) % 10, (abs(dau.pdgId())/100) % 10) == 5 :
+                    BDaughterNumber = BDaughterNumber + 1
+            if BDaughterNumber == 3 :
+                print "---Prima figlia del b con 3 B:                     ", lastb.daughterRefVector()[0].pdgId()
+
+
+            while chainIt != chainIt_beforSearchForMother :
+                chainIt_beforSearchForMother = chainIt
+                for mom in chainIt.motherRefVector() :
+                    if mom == None or mom.isNull() or not mom.isAvailable(): 
+                        print "ERROR: mother of b not available"
+                    else :
+                        if abs(mom.get().pdgId()) == 5 : #and abs(mom.eta()) < 15000 :
+                            chainIt = mom
+
+            firstb = chainIt
+            event.genBHadrons[n].firstb = firstb
+            firstbP4 = firstb.p4()
+
+            event.genBHadrons[n].gluon = firstb
+            gluonOfb = chainIt.motherRefVector()[0] 
+            if gluonOfb == None or gluonOfb.isNull() or not gluonOfb.isAvailable(): 
+                print "ERROR: gluon not available"
+            else :
+                event.genBHadrons[n].gluon = gluonOfb
+            if len(event.genBHadrons) != 2 :
+                print "Number Of daughter of the gluon:     ", len(gluonOfb.daughterRefVector())
+
+#            try :
+#            lastb = lastb.get()
+
+
+#               lastb is a RefVector and firstb in a genParticle------------
+            event.genBHadrons[n].lastb = lastb
+            lastbP4 = lastb.p4()
+
+            firstbP4.deltaRwithB = deltaR(firstbP4, event.genBHadrons[n].p4())
+            lastbP4.deltaRwithB = deltaR(lastbP4, event.genBHadrons[n].p4())
+            event.genFirstb.append(firstbP4)
+            event.genLastb.append(lastbP4)
+
+#            except :
+#                pass
+
+
+    def makeGenBPair(self, event) :
+
+        gluonList = []
+        for Bhad in event.genBHadrons : 
+            gluonAlreadyPresent = False
+            for g in gluonList : 
+                if g == Bhad.gluon :
+                    gluonAlreadyPresent = True
+            if not gluonAlreadyPresent :
+#                if abs(Bhad.firstb.eta()) < 15000 :
+                    gluonList.append(Bhad.gluon)
+
+        if len(event.genBHadrons) != 2*len(gluonList) :
+            print "---B number:  ", len(event.genBHadrons), "gluon number:  ", len(gluonList)
+            if len(event.genBHadrons) == 2 and len(gluonList) == 2 :
+                pass
+            else :
+                print "ERRORE ------------------------------->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+#            print "gluons: "
+#            for g in gluonList : 
+#                print g
+
+
+        for g in gluonList : 
+            booleanCheck = True
+            pairOfB = []
+            for Bhad in event.genBHadrons : 
+                if g == Bhad.gluon :
+                    pairOfB.append(Bhad)
+                    booleanCheck = False
+            if len(pairOfB) != 2 :
+                print "ERROR: not 2 bottom from a gluon. b from the same gluon:  ", len(pairOfB), "  \t number of B:   ", len(event.genBHadrons)
+                for Bparticle in pairOfB :
+                    print "pdg:  \t quark pdgId: ", Bparticle.firstb.pdgId(), "  \t hadron pdgId: ",  Bparticle.pdgId()
+            else :
+#                print " 2 bottom from a gluon:  ", len(pairOfB)
+                event.genBPair.append(pairOfB)
+
+            if booleanCheck :
+                print "Non arriva alla fine!!!!!------------------------------------------------------------------"
+
+
 
     def process(self, event):
         self.readCollections( event.input )
@@ -35,7 +182,13 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
                 if mom == None or mom.isNull() or not mom.isAvailable(): break
             return False
 
+        event.genLastb = [] 
+        event.genFirstb = [] 
         heavyHadrons = []
+        event.genAllBHadrons = []
+        event.genBToDHadrons = []
+        event.genBPair = []
+
         for g in event.genParticles:
             if g.status() != 2 or abs(g.pdgId()) < 100: continue
             myflav = flav(g)
@@ -53,11 +206,15 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
                     if mom.status() != 2 or abs(mom.pdgId()) < 100: break
                     if flav(mom) == 5:
                         heaviestInChain = False
+                        self.makeBToDHadrons(mom, g, event)
                         break
                     mom = mom.motherRef() if mom.numberOfMothers() > 0 else None
-                    if not heaviestInChain: continue
+                if not heaviestInChain: continue
             # OK, here we are
             g.flav = myflav
+            g.firstb = g
+            g.lastb = g
+            g.bIndex = -1
             heavyHadrons.append(g)
         # if none is found, give up here without going through the rest, so we avoid e.g. mc matching for jets
         if len(heavyHadrons) == 0:
@@ -134,8 +291,14 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
         # sort and save
         heavyHadrons.sort(key = lambda h : h.pt(), reverse=True)
         event.genHeavyHadrons = heavyHadrons
+#        event.genAllBHadrons = [ h for h in heavyHadrons if h.flav == 5 ]
+#        event.genBHadrons = [ h for h in heavyHadrons if h.flav == 5 and h.pt() > 15.]
         event.genBHadrons = [ h for h in heavyHadrons if h.flav == 5 ]
+        event.genAllBHadrons = [ h for h in heavyHadrons if h.flav == 5 and h.pt() > 15.]
         event.genDHadrons = [ h for h in heavyHadrons if h.flav == 4 ]
+        if len(event.genBHadrons) > 1 :
+            self.makeFirstAndLastb(event)
+            self.makeGenBPair(event)
         #print "Summary: "
         #for had in event.genBHadrons:
         #    print "    HAD with %d daughters, mass %5.2f, pt %5.2f, eta %+4.2f, phi %+4.2f: sv %s, jet %s" % (had.numberOfDaughters(), had.mass(), had.pt(), had.eta(), had.phi(), had.sv != None, had.jet != None)

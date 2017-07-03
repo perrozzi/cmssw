@@ -37,6 +37,9 @@ class ttHSVAnalyzer( Analyzer ):
     def declareHandles(self):
         super(ttHSVAnalyzer, self).declareHandles()
         self.handles['ivf'] = AutoHandle( self.cfg_ana.sv,'std::vector<reco::VertexCompositePtrCandidate>')
+        self.handles['ivfismerged'] = AutoHandle((self.cfg_ana.sv,'ifMerged'),'std::vector<int>')
+        #self.handles['isMerged'] =  AutoHandle('btod', 'isMerged', 'bool' )
+        #self.handles['isMerged'] =  AutoHandle('btod', 'isMerged', 'bool' )
         self.mchandles['packedGen'] = AutoHandle( 'packedGenParticles', 'std::vector<pat::PackedGenParticle>' )
 
     def beginLoop(self, setup):
@@ -48,10 +51,16 @@ class ttHSVAnalyzer( Analyzer ):
 
         #get all vertices from IVF
         allivf = [ v for v in self.handles['ivf'].product() ]
-       
+        allivfIsMerged = [ v for v in self.handles['ivfismerged'].product() ]
+        for i in range(0,len(allivf)) :
+            allivf[i].ism = allivfIsMerged[i]
+
         # attach distances to PV
         pv = event.goodVertices[0] if len(event.goodVertices)>0 else event.vertices[0]
+        #idx = 0
         for sv in allivf:
+             #sv.isMerged = event.isMerged[idx]
+             #idx +=1
              #sv.dz  = SignedImpactParameterComputer.vertexDz(sv, pv)
              sv.dxy = SignedImpactParameterComputer.vertexDxy(sv, pv)
              sv.d3d = SignedImpactParameterComputer.vertexD3d(sv, pv)
@@ -79,6 +88,7 @@ class ttHSVAnalyzer( Analyzer ):
                 mctracks, matchable, matched = 0, 0, 0
                 s.mctracks = []
                 ancestors = {}
+                firstB = []
                 for id in xrange(s.numberOfDaughters()):
                     dau = s.daughter(id)
                     #print "  daughter track with pt %6.3f, eta %+5.3f, phi %+5.3f, dxy %+6.4f, dz %+6.4f" % (dau.pt(), dau.eta(), dau.phi(), dau.dxy(), dau.dz())
@@ -90,6 +100,8 @@ class ttHSVAnalyzer( Analyzer ):
                         # ancestry
                         mom = dau.match[0].mother(0)
                         depth = 1; found = False
+                        maxdepth=1
+          
                         while mom:
                             id = abs(mom.pdgId())
                             flav = max((id/1000) % 10, (id/100) % 10)
@@ -98,6 +110,11 @@ class ttHSVAnalyzer( Analyzer ):
                             if mom.status() != 2 or (abs(mom.pdgId()) < 100 and (abs(mom.pdgId()) != 15)):
                                 break
                             if flav in [4,5]:
+                                if flav==5 :
+                                  momid = abs(mom.mother(0).pdgId()) if mom.numberOfMothers() > 0 else 0 
+                                  if  max((momid/1000) % 10, (momid/100) % 10) != 5 and mom not in firstB :
+                                      firstB.append(mom)
+
                                 found = True
                                 if key in ancestors:
                                     ancestors[key][1] += 1;
@@ -113,11 +130,12 @@ class ttHSVAnalyzer( Analyzer ):
                 s.mcFlavFirst      = 0
                 s.mcFlavHeaviest   = 0
                 s.mcHadron         = None
+                s.mcNDifferentBHads = len(firstB)
                 if matchable:
                     maxhits  = max([h for (p,h,d,f) in ancestors.itervalues() ])
                     mindepth = min([d for (p,h,d,f) in ancestors.itervalues() if h == maxhits])
                     if matchable > 1:
-                        s.mcMatchFraction = maxhits / float(matchable)  #perchè non  maxhits / s.numberOfDaughters()?
+                        s.mcMatchFraction = maxhits / float(matchable)  #perchnon  maxhits / s.numberOfDaughters()?
                     for (mom,hits,depth,flav) in ancestors.itervalues():
                         if hits != maxhits: continue
                         if depth == mindepth:
