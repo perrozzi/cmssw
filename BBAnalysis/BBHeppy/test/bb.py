@@ -184,8 +184,8 @@ triggerTable = {
 #from PhysicsTools.Heppy.analyzers.core.TriggerObjectsAnalyzer import TriggerObjectsAnalyzer
 from BBAnalysis.BBHeppy.TriggerObjectsAnalyzer import TriggerObjectsAnalyzer
 
-#from VHbbAnalysis.Heppy.TriggerObjectsList import *
-from BBAnalysis.BBHeppy.TriggerObjectsList import *
+from VHbbAnalysis.Heppy.TriggerObjectsList import *
+#from BBAnalysis.BBHeppy.TriggerObjectsList import *
 
 TriggerObjectsAna = TriggerObjectsAnalyzer.defaultConfig
 TriggerObjectsAna.triggerObjectsCfgs = triggerObjectCollections
