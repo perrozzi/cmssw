@@ -23,7 +23,7 @@ parser.add_argument('-S', action='store', dest='sample', help='sample textfile(s
 parser.add_argument('-q', action='store', dest='queue', help='queue to submit, defaults to all.q', default='all.q')
 parser.add_argument('-i', action='store_true', dest='interactive', help='interactive mode')
 args = parser.parse_args()
-outputFolder = 'root://t3dcachedb.psi.ch:1094//pnfs/psi.ch/cms/trivcat/store/user/berger_p2/gbb/ntuples/2015/'
+outputFolder = 'root://t3dcachedb.psi.ch:1094//pnfs/psi.ch/cms/trivcat/store/user/berger_p2/gbb/ntuples/2016/'
 ntuplesSubfolder = datetime.datetime.now().strftime("%y%m%d_%H%M%S") + '/0000/'
 
 # PREPARE list of jobs

@@ -51,15 +51,15 @@ treeProducer= cfg.Analyzer(
 	
         collections = {
    	        "ivf" : NTupleCollection("ivf", svType, 50, help="Selected secondary vertices from ttH guys"),
-                "genBHadrons"  : NTupleCollection("GenBHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level B hadrons with pt gt 15"),
-                "genAllBHadrons"  : NTupleCollection("GenAllBHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level B hadrons"),
-                "genDHadrons"  : NTupleCollection("GenDHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level D hadrons"),
-                "genBToDHadrons"  : NTupleCollection("GenDfromBHad", GenDfromBHadType, 20, mcOnly=True, help="Gen-level D hadrons from B"),
-                "genFirstb"  : NTupleCollection("genFirstb", bQuarkType, 20, mcOnly=True, help="Gen-level first b quarks"),
-                "genLastb"  : NTupleCollection("genLastb", bQuarkType, 20, mcOnly=True, help="Gen-level last b quarks"),
-                "mergeablePairs" : NTupleCollection("mergeablePairs", vertexPairType, 100, help=" pairs"), 
-                "bbPairSystem" : NTupleCollection("bbPairSystem", bbPairType, 10, help="bb pairs"), 
-                "genBbPairSystem" : NTupleCollection("genBbPairSystem", genBbPairType, 10, mcOnly=True, help="bb pairs"), 
+            "genBHadrons"  : NTupleCollection("GenBHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level B hadrons with pt gt 15"),
+            "genAllBHadrons"  : NTupleCollection("GenAllBHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level B hadrons"),
+            "genDHadrons"  : NTupleCollection("GenDHad", heavyFlavourHadronType, 20, mcOnly=True, help="Gen-level D hadrons"),
+            "genBToDHadrons"  : NTupleCollection("GenDfromBHad", GenDfromBHadType, 20, mcOnly=True, help="Gen-level D hadrons from B"),
+            "genFirstb"  : NTupleCollection("genFirstb", bQuarkType, 20, mcOnly=True, help="Gen-level first b quarks"),
+            "genLastb"  : NTupleCollection("genLastb", bQuarkType, 20, mcOnly=True, help="Gen-level last b quarks"),
+            "mergeablePairs" : NTupleCollection("mergeablePairs", vertexPairType, 100, help=" pairs"), 
+            "bbPairSystem" : NTupleCollection("bbPairSystem", bbPairType, 10, help="bb pairs"), 
+            "genBbPairSystem" : NTupleCollection("genBbPairSystem", genBbPairType, 10, mcOnly=True, help="bb pairs"), 
 	        "bjets"       : NTupleCollection("bjets",     fourVectorType, 2, mcOnly=True, help="Jets from bb pair"),
 	        "genBjets"       : NTupleCollection("genBjets",     fourVectorType, 2, mcOnly=True, help="GenJets from bb pair"),
 	        "CAJets"       : NTupleCollection("CAJets",     fourVectorType, 10, help="recostructed jets"),
@@ -81,7 +81,7 @@ treeProducer= cfg.Analyzer(
                 #"genwzquarks"     : NTupleCollection("GenQuark",   genParticleType, 6, help="Generated quarks from W/Z decays"),
                 #"genleps"         : NTupleCollection("GenLep",     genParticleType, 6, help="Generated leptons from W/Z decays"),
                 #"gentauleps"      : NTupleCollection("GenLepFromTau", genParticleType, 6, help="Generated leptons from decays of taus from W/Z/h decays"),
-
+    }
 	)
 
 # Import standard analyzers and take their default config
@@ -179,10 +179,14 @@ triggerTable = {
 }
 
 ###add trigger objects ####
+
+# !!
 #from PhysicsTools.Heppy.analyzers.core.TriggerObjectsAnalyzer import TriggerObjectsAnalyzer
 from BBAnalysis.BBHeppy.TriggerObjectsAnalyzer import TriggerObjectsAnalyzer
+
 #from VHbbAnalysis.Heppy.TriggerObjectsList import *
 from BBAnalysis.BBHeppy.TriggerObjectsList import *
+
 TriggerObjectsAna = TriggerObjectsAnalyzer.defaultConfig
 TriggerObjectsAna.triggerObjectsCfgs = triggerObjectCollections
 
@@ -220,31 +224,17 @@ output_service = cfg.Service(
       option='recreate'
     )
 
-#xrdcp root://cms-xrd-global.cern.ch//store/data/Run2015D/JetHT/MINIAOD/16Dec2015-v1/00000/301A497D-70B0-E511-9630-002590D0AFA8.root /scratch/berger_p2/test/
+# these are data test files:
+# 2015: xrdcp root://cms-xrd-global.cern.ch//store/data/Run2015D/JetHT/MINIAOD/16Dec2015-v1/00000/301A497D-70B0-E511-9630-002590D0AFA8.root /scratch/berger_p2/test/
+# 2016: xrdcp root://xrootd-cms.infn.it//store/data/Run2016G/JetHT/MINIAOD/23Sep2016-v1/100000/023A19A6-D389-E611-A37E-0025907DC9CC.root /scratch/berger_p2/test/
+
 sample = cfg.Component(
-#<<<<<<< HEAD
-        files = ['/scratch/berger_p2/test/301A497D-70B0-E511-9630-002590D0AFA8.root'],
+    files = ['/scratch/berger_p2/test/023A19A6-D389-E611-A37E-0025907DC9CC.root'],
     name="SingleSample", isEmbed=False
-    )
+)
 
 sample.isMC = isMC
 sample.isData = not isMC
-#=======
-#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/JetHT.root'],
-#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias.root','/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias3.root'],
-#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias1.root','/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias2.root','/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias3.root','/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias4.root'],
-#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/ZeroBias.root'],
-#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-1800to2400.root'],
-#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-120to170.root'],
-#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/QCD_Pt-300to470.root'],
-#    files = ['/scratch/mandorli/HeppyBB/CMSSW_7_6_3/src/JetHT_data.root'],
-#    files = ['root://cms-xrd-global.cern.ch//store/data/Run2015D/JetHT/MINIAOD/16Dec2015-v1/00000/301A497D-70B0-E511-9630-002590D0AFA8.root'],
-#    name="SingleSample", isEmbed=False
-#    )
-#
-##sample.isMC=False
-#sample.isMC=True
-#>>>>>>> nuovoHbb
 
 # the following is declared in case this cfg is used in input to the heppy.py script
 from PhysicsTools.HeppyCore.framework.eventsfwlite import Events
