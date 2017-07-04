@@ -107,11 +107,13 @@ class AutoFillTreeProducer( TreeAnalyzerNumpy ):
             
     def fillCoreVariables(self, tr, event, isMC):
         """Here we fill the variables that we always want and that are hard-coded"""
-        tr.fill('run', event.input.eventAuxiliary().id().run())
-        tr.fill('lumi',event.input.eventAuxiliary().id().luminosityBlock())
-        tr.fill('evt', event.input.eventAuxiliary().id().event())    
-        tr.fill('isData', 0 if isMC else 1)
-
+        try :
+          tr.fill('run', event.input.eventAuxiliary().id().run())
+          tr.fill('lumi',event.input.eventAuxiliary().id().luminosityBlock())
+          tr.fill('evt', event.input.eventAuxiliary().id().event())    
+          tr.fill('isData', 0 if isMC else 1)
+        except:
+	  pass
 #       triggerResults = self.handles['TriggerResults'].product()
 #       for T,TC in self.triggerBitCheckers:
 #           tr.fill("HLT_"+T, TC.check(event.object(), triggerResults))
@@ -129,10 +131,10 @@ class AutoFillTreeProducer( TreeAnalyzerNumpy ):
             else :
                     tr.fill("nTrueInt", -1)
                     tr.fill("puWeight", 1.0)
-                
-            tr.fill("genWeight", self.mchandles['GenInfo'].product().weight())
+            try:    
+             tr.fill("genWeight", self.mchandles['GenInfo'].product().weight())
             ## PDF weights
-            if hasattr(event,"pdfWeights") :
+             if hasattr(event,"pdfWeights") :
               for (pdf,nvals) in self.pdfWeights:
                 if len(event.pdfWeights[pdf]) != nvals:
                     raise RuntimeError("PDF lenght mismatch for %s, declared %d but the event has %d" % (pdf,nvals,event.pdfWeights[pdf]))
@@ -141,7 +143,8 @@ class AutoFillTreeProducer( TreeAnalyzerNumpy ):
                         tr.fill('pdfWeight_%s_%d' % (pdf,i), w)
                 else:
                     tr.vfill('pdfWeight_%s' % pdf, event.pdfWeights[pdf])
-
+            except:
+		pass
     def process(self, event):
 	if hasattr(self.cfg_ana,"filter") :	
 		if not self.cfg_ana.filter(event) :
