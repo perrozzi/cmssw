@@ -150,6 +150,9 @@ from PhysicsTools.Heppy.analyzers.objects.VertexAnalyzer import VertexAnalyzer
 VertexAna = VertexAnalyzer.defaultConfig
 
 from PhysicsTools.Heppy.analyzers.core.TriggerBitAnalyzer import TriggerBitAnalyzer
+FlagsAna = TriggerBitAnalyzer.defaultEventFlagsConfig
+FlagsAna.triggerBits.update( { "chargedHadronTrackResolutionFilter" : ["Flag_chargedHadronTrackResolutionFilter"], "muonBadTrackFilter" : ["Flag_muonBadTrackFilter"] , "GlobalTightHalo2016Filter" : ["Flag_globalTightHalo2016Filter"] } )
+
 
 triggerTable = {
    "DiJetMu" : [
@@ -178,11 +181,15 @@ triggerTable = {
    ],
 }
 
+
+from PhysicsTools.Heppy.analyzers.core.L1TriggerAnalyzer import L1TriggerAnalyzer
+L1TriggerAna = cfg.Analyzer(class_object = L1TriggerAnalyzer,processName = 'HLT')
+
 ###add trigger objects ####
 
 # !!
-#from PhysicsTools.Heppy.analyzers.core.TriggerObjectsAnalyzer import TriggerObjectsAnalyzer
-from BBAnalysis.BBHeppy.TriggerObjectsAnalyzer import TriggerObjectsAnalyzer
+from PhysicsTools.Heppy.analyzers.core.TriggerObjectsAnalyzer import TriggerObjectsAnalyzer
+#from BBAnalysis.BBHeppy.TriggerObjectsAnalyzer import TriggerObjectsAnalyzer
 
 from VHbbAnalysis.Heppy.TriggerObjectsList import *
 #from BBAnalysis.BBHeppy.TriggerObjectsList import *
@@ -205,12 +212,15 @@ TrigAna = cfg.Analyzer(
    verbose = False,
    unrollbits=True,
    class_object = TriggerBitAnalyzer,
+   processName = 'HLT',
+   fallbackProcessName = 'HLT2',
    triggerBits = triggerTable,  #default is MC, use the triggerTableData in -data.py files
   )
 
-#TriggerObjectsAna.triggerObjectInputTag = ('selectedPatTrigger','','RECO') # to add only if isMC=False
+if not isMC:
+    TriggerObjectsAna.triggerObjectInputTag = ('selectedPatTrigger','','RECO') # to add only if isMC=False
 
-sequence = [ TriggerObjectsAna, TrigAna, VertexAna,ttHSVAna,ttHHFAna,BBAna,treeProducer]
+sequence = [FlagsAna, TrigAna, L1TriggerAna, TriggerObjectsAna, VertexAna,ttHSVAna,ttHHFAna,BBAna,treeProducer]
 
 #use tfile service to provide a single TFile to all modules where they
 #can write any root object. If the name is 'outputfile' or the one specified in treeProducer
