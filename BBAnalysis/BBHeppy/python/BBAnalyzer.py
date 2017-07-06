@@ -40,7 +40,14 @@ class BBHeppy( Analyzer ):
         super(BBHeppy,self).beginLoop(setup)
         if "outputfile" in setup.services :
             setup.services["outputfile"].file.cd()
-            self.inputCounter = ROOT.TH1F("Count","Count",1,0,2)
+        elif 'PhysicsTools.HeppyCore.framework.services.tfile.TFileService_outputfile' in setup.services :
+            setup.services['PhysicsTools.HeppyCore.framework.services.tfile.TFileService_outputfile'].file.cd()
+        else:
+            print "no outputfile in services:"
+            print setup.services
+        
+        self.inputCounter = ROOT.TH1F("Count","Count",1,0,2)
+
 #            self.inputCounterWeighted = ROOT.TH1F("CountWeighted","Count with gen weight and pu weight",1,0,2)
 #            self.inputCounterPosWeight = ROOT.TH1F("CountPosWeight","Count genWeight>0",1,0,2)
 #            self.inputCounterNegWeight = ROOT.TH1F("CountNegWeight","Count genWeight<0",1,0,2)
