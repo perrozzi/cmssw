@@ -6,7 +6,17 @@ from PhysicsTools.Heppy.utils.cmsswPreprocessor import CmsswPreprocessor
 # The content of the output tree is defined here
 # the definitions of the NtupleObjects are located under PhysicsTools/Heppy/pythonanalyzers/objects/autophobj.py
 
-isMC = False
+isMC = True
+
+# these are data test files:
+# 2015: xrdcp root://cms-xrd-global.cern.ch//store/data/Run2015D/JetHT/MINIAOD/16Dec2015-v1/00000/301A497D-70B0-E511-9630-002590D0AFA8.root /scratch/berger_p2/test/
+# 2016: xrdcp root://xrootd-cms.infn.it//store/data/Run2016G/JetHT/MINIAOD/23Sep2016-v1/100000/023A19A6-D389-E611-A37E-0025907DC9CC.root /scratch/berger_p2/test/
+
+sample = cfg.Component(
+    #files = ['/scratch/berger_p2/test/023A19A6-D389-E611-A37E-0025907DC9CC.root'],
+    files = ['/scratch/berger_p2/test/QCD_Pt_120to170.root'],
+    name="SingleSample", isEmbed=False
+)
 
 # has to be True (only change it for debugging)
 usePreprocessor = True
@@ -62,8 +72,9 @@ treeProducer= cfg.Analyzer(
             "genBbPairSystem" : NTupleCollection("genBbPairSystem", genBbPairType, 10, mcOnly=True, help="bb pairs"), 
 	        "bjets"       : NTupleCollection("bjets",     fourVectorType, 2, mcOnly=True, help="Jets from bb pair"),
 	        "genBjets"       : NTupleCollection("genBjets",     fourVectorType, 2, mcOnly=True, help="GenJets from bb pair"),
-	        "CAJets"       : NTupleCollection("CAJets",     fourVectorType, 10, help="recostructed jets"),
+	        "CAJets"       : NTupleCollection("CAJets",    fourVectorType, 10, help="recostructed jets"),
 	        "AK4Jets"       : NTupleCollection("AK4Jets",     fourVectorType, 10, help="recostructed jets"),
+            "cleanJets"       : NTupleCollection("Jet",     jetType, 8, help="Cental jets after full selection and cleaning, sorted by b-tag"),
 		#The following would just store the electrons and muons from miniaod without any selection or cleaning
                 # only the basice particle information is saved
 		#"slimmedMuons" : ( AutoHandle( ("slimmedMuons",), "std::vector<pat::Muon>" ),
@@ -153,6 +164,12 @@ from PhysicsTools.Heppy.analyzers.core.TriggerBitAnalyzer import TriggerBitAnaly
 FlagsAna = TriggerBitAnalyzer.defaultEventFlagsConfig
 FlagsAna.triggerBits.update( { "chargedHadronTrackResolutionFilter" : ["Flag_chargedHadronTrackResolutionFilter"], "muonBadTrackFilter" : ["Flag_muonBadTrackFilter"] , "GlobalTightHalo2016Filter" : ["Flag_globalTightHalo2016Filter"] } )
 
+from PhysicsTools.Heppy.analyzers.gen.GeneratorAnalyzer import GeneratorAnalyzer 
+GenAna = GeneratorAnalyzer.defaultConfig
+from PhysicsTools.Heppy.analyzers.objects.LeptonAnalyzer import LeptonAnalyzer
+LepAna = LeptonAnalyzer.defaultConfig
+from PhysicsTools.Heppy.analyzers.objects.JetAnalyzer import JetAnalyzer
+JetAna = JetAnalyzer.defaultConfig
 
 triggerTable = {
    "DiJetMu" : [
@@ -220,7 +237,7 @@ TrigAna = cfg.Analyzer(
 if not isMC:
     TriggerObjectsAna.triggerObjectInputTag = ('selectedPatTrigger','','RECO') # to add only if isMC=False
 
-sequence = [FlagsAna, TrigAna, L1TriggerAna, TriggerObjectsAna, VertexAna,ttHSVAna,ttHHFAna,BBAna,treeProducer]
+sequence = [FlagsAna, TrigAna, L1TriggerAna, TriggerObjectsAna, GenAna,VertexAna, LepAna, JetAna, ttHSVAna,ttHHFAna,BBAna,treeProducer]
 
 #use tfile service to provide a single TFile to all modules where they
 #can write any root object. If the name is 'outputfile' or the one specified in treeProducer
@@ -233,15 +250,6 @@ output_service = cfg.Service(
       fname='tree.root',
       option='recreate'
     )
-
-# these are data test files:
-# 2015: xrdcp root://cms-xrd-global.cern.ch//store/data/Run2015D/JetHT/MINIAOD/16Dec2015-v1/00000/301A497D-70B0-E511-9630-002590D0AFA8.root /scratch/berger_p2/test/
-# 2016: xrdcp root://xrootd-cms.infn.it//store/data/Run2016G/JetHT/MINIAOD/23Sep2016-v1/100000/023A19A6-D389-E611-A37E-0025907DC9CC.root /scratch/berger_p2/test/
-
-sample = cfg.Component(
-    files = ['/scratch/berger_p2/test/023A19A6-D389-E611-A37E-0025907DC9CC.root'],
-    name="SingleSample", isEmbed=False
-)
 
 sample.isMC = isMC
 sample.isData = not isMC
