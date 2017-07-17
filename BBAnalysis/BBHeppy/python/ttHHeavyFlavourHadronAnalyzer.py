@@ -202,6 +202,16 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
         event.genBToDHadrons = []
         event.genBPair = []
 
+        # new method:
+        def check_b_to_d(g, event):
+            mom = g.motherRef() if g.numberOfMothers() > 0 else None
+            if mom.status() != 2 or abs(mom.pdgId()) < 100:
+                return False
+            elif flav(mom) == 5:
+                self.makeBToDHadrons(mom, g, event)
+                return True
+            return check_b_to_d(mom, event)
+
         for g in event.genParticles:
             if g.status() != 2 or abs(g.pdgId()) < 100: continue
             myflav = flav(g)
@@ -212,17 +222,31 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
                     lastInChain = False
                     break
             if not lastInChain: continue
+            
+            # DEBUG:
+            #madeBToD_old = False
+            madeBToD_new = False
+
             if myflav == 4:
-                heaviestInChain = True
-                mom = g.motherRef() if g.numberOfMothers() > 0 else None
-                while mom != None and mom.isNonnull() and mom.isAvailable():
-                    if mom.status() != 2 or abs(mom.pdgId()) < 100: break
-                    if flav(mom) == 5:
-                        heaviestInChain = False
-                        self.makeBToDHadrons(mom, g, event)
-                        break
-                    mom = mom.motherRef() if mom.numberOfMothers() > 0 else None
+                heaviestInChain = not check_b_to_d(g, event)
+                
+                # has a memory leak:
+                #mom = g.motherRef() if g.numberOfMothers() > 0 else None
+                #while mom != None and mom.isNonnull() and mom.isAvailable():
+                #    if mom.status() != 2 or abs(mom.pdgId()) < 100: break
+                #    if flav(mom) == 5:
+                #        heaviestInChain = False
+                #        self.makeBToDHadrons(mom, g, event)
+                #        madeBToD_old = True
+                #        break
+                #    mom = mom.motherRef() if mom.numberOfMothers() > 0 else None
+                #
+                ##DEBUG:
+                #if madeBToD_new != madeBToD_old:
+                #    print "\x1b[31mERROR: self.makeBToDHadrons new failed! new:", madeBToD_new, " old ", madeBToD_old, "\x1b[0m"
+                
                 if not heaviestInChain: continue
+
             # OK, here we are
             g.flav = myflav
             g.firstb = g
@@ -297,19 +321,46 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
             if had.jet == None:
                 had.jet = event.jetsIdOnly[ij]
 '''
-        # match with hard scattering
-        for had in heavyHadrons:
-            had.sourceId = 0
-            srcmass = 0
+        def match_hard_scattering(had_orig, had, srcmass=0):
             mom = had.motherRef() if had.numberOfMothers() > 0 else None
-            while mom != None and mom.isNonnull() and mom.isAvailable():
-                if mom.status() > 2: 
+            if mom != None:
+                if mom.status() > 2:
                     if mom.mass() > srcmass:
                         srcmass = mom.mass()
-                        had.sourceId = mom.pdgId() 
+                        had_orig.sourceId = mom.pdgId()
                     if srcmass > 175:
-                        break
-                mom = mom.motherRef() if mom.numberOfMothers() > 0 else None
+                        return None           
+                return match_hard_scattering(had_orig, mom, srcmass)
+            else:
+                return None
+
+        # match with hard scattering
+        for had in heavyHadrons:
+            # old method, memory leak here...
+            #had.sourceId = 0
+            #srcmass = 0
+            #mom = had.motherRef() if had.numberOfMothers() > 0 else None
+            #while mom != None and mom.isNonnull() and mom.isAvailable():
+            #    if mom.status() > 2: 
+            #        if mom.mass() > srcmass:
+            #            srcmass = mom.mass()
+            #            had.sourceId = mom.pdgId() 
+            #        if srcmass > 175:
+            #            break
+            #    mom = mom.motherRef() if mom.numberOfMothers() > 0 else None
+            #
+            #oldSourceId = had.sourceId
+            
+            had.sourceId = 0
+            # new method
+            match_hard_scattering(had, had)
+            
+            #newSourceId = had.sourceId
+            #DEBUG: compare both methods
+            #if oldSourceId != newSourceId:
+            #    print "\x1b[31mERROR: match_hard_scattering failed! old:", oldSourceId, " new ", newSourceId, "\x1b[0m"
+        
+        
         # sort and save
         heavyHadrons.sort(key = lambda h : h.pt(), reverse=True)
         event.genHeavyHadrons = heavyHadrons
