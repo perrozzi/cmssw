@@ -483,7 +483,7 @@ class VHbbAnalyzer( Analyzer ):
     def doQuickTkMET(self,event) :
 	if not hasattr(event,"pfCands") :
 	        event.pfCands = list(self.handles['pfCands'].product())
-        event.quickTkMET=sum([x.p4() for x in event.pfCands if x.charge() != 0 and x.dz() < 0.1 and  x.dz() > -0.1],ROOT.reco.Particle.LorentzVector())
+        event.quickTkMET=-sum([x.p4() for x in event.pfCands if x.charge() != 0 and x.dz() < 0.1 and  x.dz() > -0.1],ROOT.reco.Particle.LorentzVector())
 
     def initOutputs (self,event) : 
         event.hJets = []
@@ -571,6 +571,11 @@ class VHbbAnalyzer( Analyzer ):
               j.btagIdx=csvSortedJets.index(j)
         for j in event.discardedJets:
               j.btagIdx=-1
+        cmvaSortedJets=sorted(event.cleanJetsAll, key = lambda jet : jet.btag('pfCombinedMVAV2BJetTags') ,reverse=True)
+        for j in event.cleanJetsAll:
+              j.btagCmvaIdx=cmvaSortedJets.index(j)
+        for j in event.discardedJets:
+              j.btagCmvaIdx=-1
       
 	# filter events with less than 2 jets with pt 20
         event.jetsForHiggs = [x for x in event.cleanJets if self.cfg_ana.higgsJetsPreSelection(x) ]

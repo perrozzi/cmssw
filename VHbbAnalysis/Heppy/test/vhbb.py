@@ -10,7 +10,7 @@ import PhysicsTools.HeppyCore.framework.config as cfg
 from VHbbAnalysis.Heppy.vhbbobj import *
 from PhysicsTools.HeppyCore.utils.deltar import deltaPhi
 from PhysicsTools.Heppy.analyzers.core.AutoFillTreeProducer  import * 
-
+from VHbbAnalysis.Heppy.btagSF import btagSFhandle, get_event_SF
 
 import logging
 logging.basicConfig(level=logging.WARNING)
@@ -323,65 +323,67 @@ JetAna.recalibrateJets=True
 JetAna.jecPath=os.environ['CMSSW_BASE']+"/src/VHbbAnalysis/Heppy/data/jec"
 #JetAna.mcGT="Fall15_25nsV2_MC"
 #JetAna.dataGT = "Fall15_25nsV2_DATA"
-JetAna.mcGT="Spring16_23Sep2016V2_MC"
-JetAna.dataGT="Spring16_23Sep2016GV2_DATA"
+
+JetAna.mcGT="Summer16_23Sep2016V3_MC"
+JetAna.dataGT="Summer16_23Sep2016GV3_DATA"
 JetAna.addJECShifts=True
 JetAna.addJERShifts=True
 
 factorizedJetCorrections = [
-    "AbsoluteFlavMap",
-    "AbsoluteMPFBias",
-    "AbsoluteScale",
-    "AbsoluteStat",
-    "CorrelationGroupFlavor",
-    "CorrelationGroupIntercalibration",
-    "CorrelationGroupMPFInSitu",
-    "CorrelationGroupUncorrelated",
-    "CorrelationGroupbJES",
-    "FlavorPhotonJet",
-    "FlavorPureBottom",
-    "FlavorPureCharm",
-    "FlavorPureGluon",
-    "FlavorPureQuark",
-    "FlavorQCD",
-    "FlavorZJet",
-    "Fragmentation",
-    "PileUpDataMC",
-    "PileUpEnvelope",
-    "PileUpMuZero",
-    "PileUpPtBB",
-    "PileUpPtEC1",
-    "PileUpPtEC2",
-    "PileUpPtHF",
-    "PileUpPtRef",
-    "RelativeFSR",
-    "RelativeJEREC1",
-    "RelativeJEREC2",
-    "RelativeJERHF",
-    "RelativePtBB",
-    "RelativePtEC1",
-    "RelativePtEC2",
-    "RelativePtHF",
-    "RelativeStatEC",
-    "RelativeStatFSR",
-    "RelativeStatHF",
-    "SinglePionECAL",
-    "SinglePionHCAL",
-    "SubTotalAbsolute",
-    "SubTotalMC",
-    "SubTotalPileUp",
-    "SubTotalPt",
-    "SubTotalRelative",
-    "SubTotalScale",
-    "TimePtEta",
-    "TimeRunBCD",
-    "TimeRunE",
-    "TimeRunF",
-    "TimeRunGH",
-    "TotalNoFlavorNoTime",
-    "TotalNoFlavor",
-    "TotalNoTime",
-    "Total",
+        "AbsoluteStat",
+        "AbsoluteScale",
+        "AbsoluteFlavMap",
+        "AbsoluteMPFBias",
+        "Fragmentation",
+        "SinglePionECAL",
+        "SinglePionHCAL",
+        "FlavorQCD",
+        "TimePtEta",
+        "RelativeJEREC1",
+        "RelativeJEREC2",
+        "RelativeJERHF",
+        "RelativePtBB",
+        "RelativePtEC1",
+        "RelativePtEC2",
+        "RelativePtHF",
+        "RelativeBal",
+        "RelativeFSR",
+        "RelativeStatFSR",
+        "RelativeStatEC",
+        "RelativeStatHF",
+        "PileUpDataMC",
+        "PileUpPtRef",
+        "PileUpPtBB",
+        "PileUpPtEC1",
+        "PileUpPtEC2",
+        "PileUpPtHF",
+        "PileUpMuZero",
+        "PileUpEnvelope",
+        "SubTotalPileUp",
+        "SubTotalRelative",
+        "SubTotalPt",
+        "SubTotalScale",
+        "SubTotalAbsolute",
+        "SubTotalMC",
+        "Total",
+        "TotalNoFlavor",
+        "TotalNoTime",
+        "TotalNoFlavorNoTime",
+        "FlavorZJet",
+        "FlavorPhotonJet",
+        "FlavorPureGluon",
+        "FlavorPureQuark",
+        "FlavorPureCharm",
+        "FlavorPureBottom",
+        "TimeRunBCD",
+        "TimeRunEF",
+        "TimeRunG",
+        "TimeRunH",
+        "CorrelationGroupMPFInSitu",
+        "CorrelationGroupIntercalibration",
+        "CorrelationGroupbJES",
+        "CorrelationGroupFlavor",
+        "CorrelationGroupUncorrelated",
 ]
 JetAna.factorizedJetCorrections = factorizedJetCorrections
 
@@ -398,6 +400,9 @@ for jet_type in [jetTypeVHbb, patSubjetType, subjetcorrType]:
                         help=""
                     )
                 ]
+
+        
+        
 # HTT Subjets
 for subjet in ["sjW1", "sjW2", "sjNonW"]:
     for jet_corr in factorizedJetCorrections:
@@ -406,7 +411,7 @@ for subjet in ["sjW1", "sjW2", "sjNonW"]:
             httType.variables += [
                 NTupleVariable(
                     "{0}_corr_{1}".format(subjet, name),
-                        lambda x, name = name: getattr( getattr(x,subjet), 'corr{0}'.format(name), -99),
+                        lambda x, name=name, subjet=subjet : getattr( getattr(x,subjet), 'corr{0}'.format(name), -99),
                     float,
                     mcOnly=True,
                     help=""
@@ -438,22 +443,18 @@ trigemu = cfg.Analyzer(
     verbose = False,
     class_object = TriggerEmulationAnalyzer,
     calibrationFile="triggerEmulation.root",
-    slEleSelection = lambda x : x.pt() > 25 and getattr(x,"mvaIdSpring15TrigTight",False) and ele_mvaEleID_Trig_preselection(x),
+    slEleSelection = lambda x : x.pt() > 25 and getattr(x,"mvaIdSpring16GeneralPurposePOG90",False) and ele_mvaEleID_Trig_preselection(x),
     slMuSelection = lambda x : x.pt() > 25 and x.muonID("POG_ID_Tight") and mu_pfRelIso04(x) < 0.15,
-    dlEleSelection = lambda x : x.pt() > 15 and getattr(x,"mvaIdSpring15TrigMedium",False) and ele_mvaEleID_Trig_preselection(x),
+    dlEleSelection = lambda x : x.pt() > 15 and getattr(x,"mvaIdSpring16GeneralPurposePOG80",False) and ele_mvaEleID_Trig_preselection(x),
     dlMuSelection = lambda x : x.pt() > 15 and x.muonID("POG_ID_Loose") and mu_pfRelIso04(x) < 0.25,
 )
 
 VHbb = cfg.Analyzer(
     verbose=False,
     class_object=VHbbAnalyzer,
-    #wEleSelection = lambda x : x.pt() > 25 and x.electronID("cutBasedElectronID-Spring15-25ns-V1-standalone-tight"),
-    wEleSelection = lambda x : x.pt() > 25 and getattr(x,"mvaIdSpring15TrigTight",False) and ele_mvaEleID_Trig_preselection(x),
-    #wMuSelection = lambda x : x.pt() > 25 and x.muonID("POG_ID_Tight"),
+    wEleSelection = lambda x : x.pt() > 25 and getattr(x,"mvaIdSpring16GeneralPurposePOG90",False)     and ele_mvaEleID_Trig_preselection(x),
     wMuSelection = lambda x : x.pt() > 25 and x.muonID("POG_ID_Tight") and mu_pfRelIso04(x) < 0.15,
-    #zEleSelection = lambda x : x.pt() > 15 and x.electronID("cutBasedElectronID-Spring15-25ns-V1-standalone-loose"),
-    zEleSelection = lambda x : x.pt() > 15 and getattr(x,"mvaIdSpring15TrigMedium",False) and ele_mvaEleID_Trig_preselection(x),
-    #zMuSelection = lambda x : x.pt() > 10 and x.muonID("POG_ID_Loose"),
+    zEleSelection = lambda x : x.pt() > 15 and getattr(x,"mvaIdSpring16GeneralPurposePOG80",False)     and ele_mvaEleID_Trig_preselection(x),
     zMuSelection = lambda x : x.pt() > 15 and x.muonID("POG_ID_Loose") and mu_pfRelIso04(x) < 0.25,
     zLeadingElePt = 20,
     zLeadingMuPt = 20,
@@ -468,10 +469,10 @@ VHbb = cfg.Analyzer(
     doSoftActivityEWK=True,
     doVBF=True,
     regressions = [
-        {"weight":"ttbar-pumoriond17--500k-13d-300t.weights.xml", "name":"jet0Regression", "vtypes":[0,1,2,3,4,5,-1]},
+        {"weight":"ttbar-G25-500k-13d-300t.weights.xml", "name":"jet0Regression", "vtypes":[0,1,2,3,4,5,-1]},
     ],
     regressionVBF = [
-        {"weight":"ttbar-pumoriond17--500k-13d-300t.weights.xml", "name":"jet0Regression_vbf", "vtypes":[0,1,2,3,4,5,-1]}
+        {"weight":"ttbar-G25-500k-13d-300t.weights.xml", "name":"jet0Regression_vbf", "vtypes":[0,1,2,3,4,5,-1]}
     ],
     VBFblikelihood = {"weight":"TMVA_blikelihood_vbf_cmssw76_h21trained.weights.xml", "name":"BDGT"}
 )

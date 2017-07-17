@@ -1,0 +1,6 @@
+<lcgdict>
+  <class name="heppy::BBClusterizer"/>
+  <class name="heppy::SVUtils"/>
+  <class name="heppy::SignedImpactParameter" transient="true" />
+
+</lcgdict>
