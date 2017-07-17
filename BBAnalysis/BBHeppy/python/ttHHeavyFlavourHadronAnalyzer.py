@@ -172,15 +172,28 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
             return max((id/1000) % 10, (id/100) % 10)
         def same(gp1,gp2):
             return gp1.pdgId() == gp2.pdgId() and gp1.status() == gp2.status() and abs(gp1.pt()-gp2.pt()) < 1e-4  and abs(gp1.eta()-gp2.eta()) < 1e-4  and abs(gp1.phi()-gp2.phi()) < 1e-4
+        
         def descendent(child, bhadron):
             mom = child.mother(0) if child.numberOfMothers() > 0 else None
-            while mom != None:
-                if mom.status() != 2 or abs(mom.pdgId()) < 100 and abs(mom.pdgId()) != 15: break
-                if same(bhadron,mom):
-                    return True
-                mom = mom.motherRef() if mom.numberOfMothers() > 0 else None
-                if mom == None or mom.isNull() or not mom.isAvailable(): break
-            return False
+            if mom.status() != 2 or abs(mom.pdgId()) < 100 and abs(mom.pdgId()) != 15:
+                return False
+            elif same(bhadron,mom):
+                return True
+            elif mom == None:
+                return False
+            else:
+                return descendent(mom, bhadron)
+
+        # has a memory leak ("mom = mom.motherRef()" ...) , todo: remove
+        #def descendent_leaky(child, bhadron):
+        #    mom = child.mother(0) if child.numberOfMothers() > 0 else None
+        #    while mom != None:
+        #        if mom.status() != 2 or abs(mom.pdgId()) < 100 and abs(mom.pdgId()) != 15: break
+        #        if same(bhadron,mom):
+        #            return True
+        #        mom = mom.motherRef() if mom.numberOfMothers() > 0 else None
+        #        if mom == None or mom.isNull() or not mom.isAvailable(): break
+        #    return False
 
         event.genLastb = [] 
         event.genFirstb = [] 
@@ -216,13 +229,14 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
             g.lastb = g
             g.bIndex = -1
             heavyHadrons.append(g)
+        
         # if none is found, give up here without going through the rest, so we avoid e.g. mc matching for jets
         if len(heavyHadrons) == 0:
             event.genHeavyHadrons = heavyHadrons
             event.genBHadrons = [ h for h in heavyHadrons if h.flav == 5 ]
             event.genDHadrons = [ h for h in heavyHadrons if h.flav == 4 ]
             return True
- 
+
         # match with IVF 
         had_ivf_pairs = []
         #print "\nNew event"
@@ -233,12 +247,20 @@ class ttHHeavyFlavourHadronAnalyzer( Analyzer ):
                 #print "   SV %2d with %d mc tracks, mass %5.2f, pt %5.2f, eta %+4.2f, phi %+4.2f: %d mc-matched tracks" % (isv, s.numberOfDaughters(), s.mass(), s.pt(), s.eta(), s.phi(),len(s.mctracks))
                 shared_n, shared_pt = 0, 0 
                 for mct in s.mctracks:
-                    if descendent(mct,had):
+                    isDescendent = descendent(mct,had)
+
+                    #DEBUG: test if new descendent function gives same result, todo: remove later
+                    #isDescendentLeaky = descendent_leaky(mct,had)
+                    #if isDescendent != isDescendentLeaky:
+                    #    print "\x1b[31mERROR: no match",mct, " ", had , "\x1b[0m"
+
+                    if isDescendent:
                         shared_n += 1; shared_pt += mct.pt()
                 if shared_n:
                     #print "       matched %d tracks (total pt: %.2f) " % (shared_n, shared_pt)
                     had_ivf_pairs.append( (ihad, isv, shared_n, shared_pt) )
         had_ivf_pairs.sort(key = lambda (i1,i2,n,pt) : n + 0.0001*pt, reverse=True)
+
         for ihad,isv,n,pt in had_ivf_pairs:
             had = heavyHadrons[ihad]
             #print "( had %d, sv %d ): shared %d tracks, %.2f pt ==> %s" % (ihad, isv, n, pt, had.sv)
