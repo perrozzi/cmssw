@@ -7,6 +7,7 @@ from PhysicsTools.Heppy.utils.cmsswPreprocessor import CmsswPreprocessor
 # the definitions of the NtupleObjects are located under PhysicsTools/Heppy/pythonanalyzers/objects/autophobj.py
 
 isMC = True
+#isMC = False
 
 # these are data test files:
 # 2015: xrdcp root://cms-xrd-global.cern.ch//store/data/Run2015D/JetHT/MINIAOD/16Dec2015-v1/00000/301A497D-70B0-E511-9630-002590D0AFA8.root /scratch/berger_p2/test/
@@ -14,7 +15,8 @@ isMC = True
 
 sample = cfg.Component(
     #files = ['/scratch/berger_p2/test/023A19A6-D389-E611-A37E-0025907DC9CC.root'],
-    files = ['/scratch/berger_p2/test/QCD_Pt_120to170.root'],
+    #files = ['/scratch/berger_p2/test/QCD_Pt_120to170.root'],
+    files = ['/scratch/berger_p2/test/14E8104C-9AB0-E611-86C7-001E673CFC91.root'],
     name="SingleSample", isEmbed=False
 )
 
@@ -139,6 +141,13 @@ TrigAna= cfg.Analyzer(
 #replace some parameters
 LepAna.loose_muon_pt = 10
 '''
+
+from BBAnalysis.BBHeppy.MemoryLeakAnalyzer import MemoryLeakAnalyzer
+MemLeakAna = cfg.Analyzer(
+    verbose=False,
+    class_object=MemoryLeakAnalyzer
+)
+
 from BBAnalysis.BBHeppy.BBAnalyzer import BBHeppy
 BBAna =  cfg.Analyzer(
     verbose=False,
@@ -237,7 +246,8 @@ TrigAna = cfg.Analyzer(
 if not isMC:
     TriggerObjectsAna.triggerObjectInputTag = ('selectedPatTrigger','','RECO') # to add only if isMC=False
 
-sequence = [FlagsAna, TrigAna, L1TriggerAna, TriggerObjectsAna, GenAna,VertexAna, LepAna, JetAna, ttHSVAna,ttHHFAna,BBAna,treeProducer]
+#sequence = [FlagsAna, TrigAna, L1TriggerAna, TriggerObjectsAna, GenAna,VertexAna, LepAna, JetAna, ttHSVAna,ttHHFAna,BBAna,treeProducer]
+sequence = [FlagsAna, TrigAna, L1TriggerAna, TriggerObjectsAna, GenAna, VertexAna, LepAna, JetAna, ttHSVAna, ttHHFAna, MemLeakAna, BBAna, treeProducer]
 
 #use tfile service to provide a single TFile to all modules where they
 #can write any root object. If the name is 'outputfile' or the one specified in treeProducer
@@ -269,6 +279,6 @@ if usePreprocessor:
 # and the following runs the process directly if running as with python filename.py  
 if __name__ == '__main__':
     from PhysicsTools.HeppyCore.framework.looper import Looper 
-    looper = Looper( 'Loop', config, nPrint = 5,nEvents=1000) 
+    looper = Looper( 'Loop', config, nPrint = 1,nEvents=5000) 
     looper.loop()
     looper.write()
